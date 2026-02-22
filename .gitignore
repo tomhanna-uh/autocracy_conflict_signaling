@@ -1,49 +1,144 @@
-# History files
+# =============================================================================
+# .gitignore for autocracy_conflict_signaling
+# R / RStudio / Quarto research project
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# DATA — never commit raw or derived data files
+# -----------------------------------------------------------------------------
+data/
+ready_data/
+*.csv
+*.dta
+*.sav
+*.xlsx
+*.xls
+*.rds
+*.RData
+
+# Exceptions: keep placeholder/gitkeep files so the data/ folder exists in repo
+!data/.gitkeep
+!ready_data/.gitkeep
+
+# -----------------------------------------------------------------------------
+# R-specific
+# -----------------------------------------------------------------------------
 .Rhistory
-.Rapp.history
-
-# Session Data files
 .RData
-.RDataTmp
-
-# User-specific files
-.Ruserdata
-
-# Example code in package build process
-*-Ex.R
-
-# Output files from R CMD build
-/*.tar.gz
-
-# Output files from R CMD check
-/*.Rcheck/
-
-# RStudio files
+.Rapp.history
 .Rproj.user/
+*.Rproj.user
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+# R package library (if using renv or packrat)
+renv/library/
+renv/.cache/
+packrat/lib/
+packrat/lib-ext/
+packrat/lib-R/
+packrat/src/
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
+# R check output
+*.Rcheck/
 
-# knitr and R markdown default cache directories
+# knitr / rmarkdown caches
 *_cache/
 /cache/
-
-# Temporary files created by R markdown
-*.utf8.md
 *.knit.md
+*.utf8.md
 
-# R Environment Variables
+# -----------------------------------------------------------------------------
+# Quarto output
+# -----------------------------------------------------------------------------
+_site/
+_book/
+docs/_site/
+docs/_book/
+/.quarto/
+docs/.quarto/
+*.html
+!docs/*.html
+
+# Quarto freeze (computed results — commit if you want reproducible renders
+# without re-running models; exclude if you want fresh runs on each render)
+# _freeze/
+
+# Pandoc intermediates
+*.tex
+*.log
+*.aux
+*.out
+*.toc
+*.lof
+*.lot
+*.blg
+*.bbl
+
+# PDF output (generated; not source)
+*.pdf
+
+# -----------------------------------------------------------------------------
+# RStudio
+# -----------------------------------------------------------------------------
+.Rproj.user
+*.Rproj.user/
+
+# RStudio connection snippets
+.rstudio/
+
+# -----------------------------------------------------------------------------
+# Model output / saved objects
+# -----------------------------------------------------------------------------
+output/
+results/
+models/
+*.stan
+*.stanfit
+
+# Temp / scratch files from the old repos
+temp_check.txt
+m1_combined.txt
+*_gem.R
+junk_code.qmd
+old_code_chunks/
+
+# -----------------------------------------------------------------------------
+# OS-generated files
+# -----------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# -----------------------------------------------------------------------------
+# Editor / IDE artifacts
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# -----------------------------------------------------------------------------
+# Environment / secrets
+# -----------------------------------------------------------------------------
+.env
 .Renviron
-
-# pkgdown site
-docs/
-
-# translation temp files
-po/*~
-
-# RStudio Connect folder
-rsconnect/
+secrets/
+*.key
+*.pem
