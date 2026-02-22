@@ -46,6 +46,20 @@ All model scripts assume `00_packages.R` and `01_load_data.R` have been sourced 
 
 - **Three exported functions:** `load_dyad_data()`, `load_monadic_data()`, and `load_all_data()`. Scripts needing only the main dyadic dataset call `load_dyad_data()`; scripts needing both call `load_all_data()` for a named list.
 - **`GRAVE_D_Master_with_Leaders.csv` as master dataset** — treated as the primary file per the reconciliation decision. The 2025 repo used this file; the 2024 repo used separate dyadic and monadic files. This unifies data input.
+### `02_data_prep.R` — Data Transformation and Variable Derivation
+
+**Purpose:** Unified cleaning and variable construction for both dyadic and monadic datasets. Standardizes variable names across the 2024 and 2025 source files and generates the complex time-dependent variables (peace years) required for conflict modeling.
+
+**Key design decisions:**
+
+- **Unification of 2024/2025 Variable Naming** — Standardizes outcome variables like `mid_initiated` (hihosta >= 2) and `targets_democracy` (libdem >= 0.5) to ensure H1–H9 run on identical data structures.
+- **Legitimation Mix Derivation** — Constructs the `legit_ratio` (ideological legitimation / total legitimation) from V-Dem components. This is the core IV for H5, H6, and H9.
+- **Standardized Control Variables** — Implements consistent log-transformations for CINC scores and standardizes the `cold_war` dummy (1947–1991).
+- **Peace Years Logic (Beck, Katz, and Tucker)** — Ports the data.table-based peace years logic from the 2024 `data_code.qmd`. Specifically, it handles left-censoring by assuming 35 years for regimes with no prior conflict and generates the cubic splines (`t`, `t2`, `t3`) required for binary time-series cross-sectional (BTSCS) models.
+- **RDS Storage** — Saves the cleaned objects as `.rds` in a `ready_data/` folder (Git-ignored). This is preferred over CSV because it preserves factor levels and R-specific data attributes, ensuring `03–09` scripts don't need to re-type or re-factor columns.
+- **Functional Approach** — Uses `prep_dyad()` and `prep_monadic()` wrappers. This allows the preparation logic to be re-run or modified centrally without affecting the data loading or model scripts.
+
+---
 - **Two validation column vectors (`.DYAD_REQUIRED_COLS` and `.DYAD_GRAVE_COLS`)** — intentionally separated. Core V-Dem and conflict variables `stop()` hard if missing. GRAVE-D support group columns issue a `warning()` instead, because it is still an open question whether `GRAVE_D_Master_with_Leaders.csv` contains those columns. The warning output on first run will identify exactly which columns need to be merged in `02_data_prep.R`.
 - **`warn_grave = TRUE` argument** — lets you silence GRAVE-D warnings after confirming the merge is complete, without altering validation logic.
 - **`autoc_max = 0.5` parameter** — matches the V-Dem autocracy threshold used in the 2025 repo's `methodology_results.qmd`. Parameterized so the cutoff can be adjusted for robustness checks without editing function internals.
