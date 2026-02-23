@@ -1,0 +1,219 @@
+# Appendix: Robustness Checks and Descriptive Statistics {#sec-appendix}
+
+```{r}
+#| label: setup
+#| include: false
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "02_data_prep.R"))
+
+# Load all model objects
+h1_models   <- readRDS(here::here("results", "h1_logit_models.rds"))
+h2_models   <- readRDS(here::here("results", "h2_logit_models.rds"))
+h3_models   <- readRDS(here::here("results", "h3_logit_models.rds"))
+h4_models   <- readRDS(here::here("results", "h4_logit_models.rds"))
+h4_unfiltered <- readRDS(here::here("results", "h4_unfiltered_logit_models.rds"))
+h5_logit_models <- readRDS(here::here("results", "h5_logit_models.rds"))
+h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
+h8_init     <- readRDS(here::here("results", "h8_init_models.rds"))
+h8_target   <- readRDS(here::here("results", "h8_target_models.rds"))
+h8_robust   <- readRDS(here::here("results", "h8_robust_models.rds"))
+h9_survival <- readRDS(here::here("results", "h9_survival.rds"))
+```
+
+This appendix presents supplementary material, including descriptive statistics for all key variables, robustness checks with alternative model specifications, and additional interaction plots.
+
+## A.1 Descriptive Statistics
+
+```{r}
+#| label: tbl-descriptive
+#| tbl-cap: "Descriptive Statistics for Key Variables (Full Dyadic Sample)"
+key_vars <- dyad_ready %>%
+  select(
+    mid_initiated,
+    targets_democracy,
+    sidea_revisionist_domestic,
+    legit_ratio,
+    v2exl_legitideol_a,
+    v2exl_legitperf_a,
+    v2exl_legitlead_a,
+    sidea_winning_coalition_size,
+    sidea_national_military_capabilities,
+    sidea_religious_support,
+    sidea_party_elite_support,
+    sidea_military_support,
+    sidea_dynamic_leader,
+    cold_war
+  )
+
+datasummary_skim(
+  key_vars,
+  type = "numeric",
+  title = "Descriptive Statistics: Key Dyadic Variables",
+  notes = "Autocratic Side A dyad-years, 1946\u20132010."
+)
+```
+
+```{r}
+#| label: tbl-descriptive-mono
+#| tbl-cap: "Descriptive Statistics: Leader-Level Variables (Monadic Sample)"
+if (exists("monadic_ready")) {
+  mono_vars <- monadic_ready %>%
+    select(
+      tenure_years,
+      survived_to_end,
+      avg_ideological_legit,
+      legit_ratio,
+      conflicts_vs_ideo_targets,
+      conflicts_vs_democracy,
+      avg_autocracy_level,
+      log_avg_gdp,
+      irregular_entry
+    )
+
+  datasummary_skim(
+    mono_vars,
+    type = "numeric",
+    title = "Descriptive Statistics: Leader-Level (Monadic) Variables",
+    notes = "Autocratic leader-years, 1946\u20132010."
+  )
+}
+```
+
+## A.2 Correlation Matrix
+
+```{r}
+#| label: fig-corr
+#| fig-cap: "Correlation matrix of key explanatory variables"
+library(ggcorrplot)
+
+corr_data <- dyad_ready %>%
+  select(
+    sidea_revisionist_domestic, legit_ratio,
+    v2exl_legitperf_a, v2exl_legitlead_a,
+    sidea_winning_coalition_size,
+    sidea_religious_support, sidea_military_support,
+    sidea_dynamic_leader
+  ) %>%
+  drop_na()
+
+corr_matrix <- cor(corr_data)
+
+ggcorrplot(
+  corr_matrix,
+  hc.order  = TRUE,
+  type      = "lower",
+  lab       = TRUE,
+  lab_size  = 3,
+  ggtheme   = ggplot2::theme_minimal()
+)
+```
+
+## A.3 Robustness: H1–H4 with Rare Events Logit (Firth)
+
+We re-estimate H1–H4 using Firth's penalized likelihood correction for rare events. This addresses potential bias introduced by the low proportion of MID initiations in the full dyadic sample.
+
+```{r}
+#| label: tbl-rare-events
+#| tbl-cap: "H1\u2013H4 Rare Events Robustness: Firth Penalized Logistic Regression"
+library(logistf)
+
+firth_h1 <- logistf(
+  mid_initiated ~ sidea_revisionist_domestic +
+    log_cinc_a + log_cinc_b +
+    sidea_winning_coalition_size + t + cold_war,
+  data = dyad_ready
+)
+
+firth_h3 <- logistf(
+  mid_initiated ~ legit_ratio +
+    log_cinc_a + log_cinc_b +
+    sidea_winning_coalition_size + t + cold_war,
+  data = dyad_ready
+)
+
+# Results compared to main logit estimates
+modelsummary(
+  list(
+    "H1 (Firth)"  = firth_h1,
+    "H1 (Logit)"  = h1_models$h1_full,
+    "H3 (Firth)"  = firth_h3,
+    "H3 (Logit)"  = h3_models$h3_full
+  ),
+  coef_map = c(
+    sidea_revisionist_domestic = "Revisionist Ideology",
+    legit_ratio                = "Legitimation Ratio",
+    log_cinc_a                 = "Log CINC (A)",
+    sidea_winning_coalition_size = "Winning Coalition",
+    cold_war                   = "Cold War"
+  ),
+  stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
+  gof_omit = "AIC|BIC|Log"
+)
+```
+
+## A.4 Robustness: H8 Moderation with Alternative Interactions
+
+```{r}
+#| label: tbl-h8-robust
+#| tbl-cap: "H8 Robustness: Alternative Interaction Models (LPM)"
+#| results: asis
+stargazer(
+  h8_robust$h8_wcoal_int,
+  h8_robust$h8_milsupp_int,
+  h8_robust$h8_coldwar_int,
+  type = "html",
+  title = "H8 Robustness: Alternative Interaction Models",
+  dep.var.labels = "Targets Democracy (LPM)",
+  column.labels = c("W. Coalition", "Mil. Support", "Cold War"),
+  star.cutoffs = c(0.05, 0.01, 0.001),
+  omit.stat = c("aic", "ll"),
+  notes = c("Sample: Autocratic MID initiators only.",
+            "*** p<0.001, ** p<0.01, * p<0.05")
+)
+```
+
+## A.5 H9 Robustness: Alternative Survival Specifications
+
+```{r}
+#| label: tbl-h9-robust
+#| tbl-cap: "H9 Robustness: Full Cox PH Model and Interaction Specifications"
+#| results: asis
+stargazer(
+  h9_survival$cox_h9_full,
+  h9_survival$cox_h9_int_ideology,
+  h9_survival$cox_h9_int_ratio,
+  type = "html",
+  title = "H9 Robustness: Additional Cox PH Specifications",
+  dep.var.labels = "Hazard of Leader Removal",
+  column.labels = c("Full Model", "Int. Ideology", "Int. Ratio"),
+  covariate.labels = c(
+    "Conflict vs. Ideo. Target",
+    "Conflict vs. Democracy",
+    "Avg. Ideo. Legitimation",
+    "Legitimation Ratio",
+    "Conflict × Ideo. Legit.",
+    "Conflict × Legit. Ratio",
+    "Autocracy Level", "Log GDP", "Log Pop", "Irregular Entry"
+  ),
+  star.cutoffs = c(0.05, 0.01, 0.001),
+  omit.stat = c("aic", "ll")
+)
+```
+
+## A.6 Variable Coding Details
+
+The table below details the exact coding decisions for binary and continuous variables used across all model tiers.
+
+| Variable | Coding | Source |
+|---|---|---|
+| `mid_initiated` | 1 if `hihosta >= 2` (hostility level at or above threat of force) | GRAVE-D |
+| `targets_democracy` | 1 if `v2x_libdem_b >= 0.5` (liberal democracy score of target) | GRAVE-D + V-Dem |
+| `sidea_revisionist_domestic` | Composite GRAVE-D revisionist ideology index (0–1) | GRAVE-D |
+| `legit_ratio` | `v2exl_legitideol_a / legit_total`; `legit_total = sum(ideol, lead, perf)` | V-Dem |
+| `sidea_winning_coalition_size` | V-Dem/BdM coalition size proxy (0–1) | V-Dem |
+| `sidea_dynamic_leader` | Binary indicator: dynamic/charismatic leader (GRAVE-D coding) | GRAVE-D |
+| `log_cinc_a` / `log_cinc_b` | Natural log of CINC score for Side A / Side B | COW |
+| `cold_war` | 1 if year <= 1991 | Derived |
+| `t`, `t2`, `t3` | Peace years since last MID; polynomial splines for temporal dependence | Derived |
+
+: Variable Coding Details {#tbl-variable-coding}
