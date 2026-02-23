@@ -83,6 +83,21 @@ All model scripts assume `00_packages.R` and `01_load_data.R` have been sourced 
 
 ---
 
-_This README is updated as each new script is added to the `R/` directory._
+### `04_h3_h4_logit.R` — Logistic Regression for H3 and H4
 
+**Purpose:** Estimates logistic regression models for Hypothesis 3 (legitimation mix and conflict initiation) and Hypothesis 4 (legitimation mix and democracy targeting). Three named functions cover the filtered H3 models, the filtered H4 models (initiators only), and an unfiltered H4 robustness check.
+
+**Key design decisions:**
+
+- **Three-function architecture** — `estimate_h3_logit()`, `estimate_h4_logit()`, and `estimate_h4_unfiltered_logit()` are kept separate to match the three analytical questions. The unfiltered H4 function mirrors the `estimate_h4_unfiltered_models()` in the 2025 source repo.
+- **`legit_ratio` = `legit_mix_ratio_a`** — the new repo's unified `legit_ratio` (from `02_data_prep.R`) is the direct equivalent of `legit_mix_ratio_a` in the 2025 source. A variable note block at the top of the file maps all aliases explicitly.
+- **Legitimation components as covariates** — `v2exl_legitperf_a` and `v2exl_legitlead_a` (performance and personalism/leader legitimation) are used in place of the 2025 repo's `performance_legit_a` and `leader_personalism_a` aliases. These are the raw V-Dem columns already present in `dyad_ready`.
+- **`ideology_gap` as alternative H3/H4 IV** — Model 6 in both H3 and H4 replaces `legit_ratio` with `ideology_gap` (absolute difference in ideological legitimation between sides A and B, built in `02_data_prep.R`). This provides a dyadic rather than monadic operationalization of ideological distance.
+- **Interaction model (H4 Model 7)** — `legit_ratio * ideology_gap` interaction is included in both filtered and unfiltered H4 functions, replicating the `legit_mix_ratio_a * ideological_legit_a` interaction from the 2025 source. `ideology_gap` serves as the dyadic proxy for `ideological_legit_a`.
+- **H4 filtered vs. unfiltered** — the filtered function (`estimate_h4_logit`) subsets to `mid_initiated == 1` rows before modeling, preserving the conditionality in the original hypothesis. The unfiltered function runs on the full `dyad_ready` dataset as a robustness check.
+- **Results saved to `results/`** — three `.rds` files: `h3_logit_models.rds`, `h4_logit_models.rds`, and `h4_unfiltered_logit_models.rds`.
+
+---
+
+_This README is updated as each new script is added to the `R/` directory._
 *This README is updated as each new script is added to the `R/` directory.*
