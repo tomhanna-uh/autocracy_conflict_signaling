@@ -101,3 +101,42 @@ All model scripts assume `00_packages.R` and `01_load_data.R` have been sourced 
 
 _This README is updated as each new script is added to the `R/` directory._
 *This README is updated as each new script is added to the `R/` directory.*
+### `05_h5_h6_legitmix.R` — Legitimation Mix Analysis
+
+**Purpose:** Estimates models for Hypothesis 5 (conflict initiation) and Hypothesis 6 (target selection) using the relative share of ideological legitimation as the primary IV.
+
+**Key design decisions:**
+* • **Logit + Hurdle architecture** — Estimates standard logistic regressions for binary onset/targeting, plus hurdle models (`pscl::hurdle`) to account for zero-inflation in conflict data.
+* • **`legit_ratio` as continuous IV** — Uses the [0-1] ratio of ideological legitimation relative to total legitimation (performance + personalist).
+
+### `05_m1_m2_mediation.R` — Legacy Mediation Script
+
+**Purpose:** Preserves the mediation analysis from the 2025 source repo for backward compatibility and internal validation. Note: New H7 mediation is handled in `07_h7_mediation.R`.
+
+### `06_h9_survival.R` — Leader Survival Analysis (H9)
+
+**Purpose:** Estimates Cox Proportional Hazard models to test whether conflict initiation against ideological targets enhances leader survival (Hypothesis 9).
+
+**Key design decisions:**
+* • **`survival` + `coxph`** — Standard survival analysis framework.
+* • **Ideological interaction** — Interacts conflict initiation with `legit_ratio` to test if survival benefits are unique to ideological regimes.
+
+### `07_h7_mediation.R` — Support Group Mediation (H7)
+
+**Purpose:** Formal mediation analysis testing if the effect of leader ideology is mediated by support group dependence.
+
+**Key design decisions:**
+* • **`mediation` (Baron-Kenny)** — Uses the standard bootstrap-based mediation package.
+* • **`lavaan` (SEM)** — Provides a Structural Equation Modeling alternative for simultaneous path estimation.
+
+### `08_h8_moderation.R` — Dynamic Leadership Moderation (H8)
+
+**Purpose:** Tests the "Messianic Autocrat" hypothesis by moderating the ideology effect with dynamic personal leadership qualities.
+
+**Key design decisions:**
+* • **Interaction plots** — Uses `sjPlot` to visualize predicted probabilities across levels of the moderator.
+* • **LPM Robustness** — Includes Linear Probability Models to simplify marginal effect interpretation.
+
+### `09_reporting_tables.R` — Consolidated Reporting
+
+**Purpose:** Centralized generation of `stargazer` tables and `modelsummary` outputs for the entire project. Ensures consistent variable labeling and formatting across all manuscripts.
