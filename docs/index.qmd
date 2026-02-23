@@ -1,0 +1,32 @@
+# Preface {.unnumbered}
+
+**Author:** Tom Hanna  
+**ORCID:** [0000-0002-8054-0335](https://orcid.org/0000-0002-8054-0335)  
+**Affiliation:** University of Houston, Department of Political Science  
+**License:** [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)  
+**Copyright:** Tom Hanna, 2020–2025
+
+## Abstract
+
+Why do radical revisionist domestic ideologies result in revisionist international demands? Why are dictatorships led by extremists more prone to targeting democracies in interstate conflict? While the pattern of extremism and conflict is not much questioned, the causal mechanism is not thoroughly explained. A common assumption is that ideological leaders pursue revisionist goals because of personal normative preferences and that they are able to use conflict because the domestic agenda is entirely theirs to set. This conflicts with the assumption that the primary motive of leaders is to remain in power. The costly pursuit of extraterritorial ambitions detracts from the material resources available to pay off support coalitions and otherwise keep the dictator in power.
+
+I argue that ideological dictators use revisionist demands to send signals of ideological commitment to their most important domestic supporters—the **Rational Autocrat** hypothesis. This project tests this argument against the alternative **Messianic Autocrat** hypothesis (that personal dynamic leadership explains the pattern) through an analysis of dyadic MIDs and a monadic analysis of the first use of violent force. It further examines how the mix of legitimation strategies (ideological vs. performance vs. personalist) shapes both conflict initiation and target selection, and whether conflict behavior enhances leader survival through renewed domestic legitimation.
+
+## How to Use This Book
+
+This manuscript is organized into chapters that move from theory to empirics across three tiers of model complexity:
+
+1. **Theory** — Three ideal types and nine formal hypotheses
+2. **Data and Methods** — Dataset, key variables, and model specifications
+3. **Tier 1 Results (H1–H4)** — Simple logistic regression
+4. **Tier 2 Results (H5–H6)** — Legitimation mix (logit + hurdle models)
+5. **Tier 3 Results (H7–H9)** — Mediation, moderation, and survival
+6. **Appendix** — Robustness checks and descriptive statistics
+
+## Replication
+
+All data and code are available at [github.com/tomhanna-uh/autocracy_conflict_signaling](https://github.com/tomhanna-uh/autocracy_conflict_signaling). To reproduce the full analysis and render this document, run `run_all.R` from the project root. See the repository README for detailed instructions.
+
+## Citation
+
+Hanna, Tom. *Autocracy, Conflict, and Ideological Signaling*. Working manuscript, University of Houston, 2025.
