@@ -1,0 +1,116 @@
+# Data and Methods {#sec-data-methods}
+
+```{r}
+#| label: setup
+#| include: false
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "01_load_data.R"))
+source(here::here("R", "02_data_prep.R"))
+```
+
+## Data Sources
+
+The primary dataset is **GRAVE_D_Master_with_Leaders.csv**, which integrates four source datasets:
+
+1. **GRAVE-D** (Geopolitical Revisionism and Violent Extremism Dataset — Dyadic): Provides dyadic militarized interstate dispute data with GRAVE-D leadership ideology scores and support group composition variables for each state's governing regime on the conflict-initiating side.
+
+2. **V-Dem** (Varieties of Democracy, v13): Supplies the legitimation strategy variables used in Tier 2 analyses — `v2exl_legitideol` (ideological legitimation), `v2exl_legitlead` (personalist/leader legitimation), and `v2exl_legitperf` (performance legitimation) — as well as the liberal democracy index used to classify autocracies.
+
+3. **Correlates of War — National Material Capabilities** (v6.0): Provides the Composite Index of National Capability (CINC) scores used as controls for material power balance.
+
+4. **Leader tenure and entry/exit data**: Merged from the Archigos dataset [@goemans2009archigos] via the GRAVE-D master file to support leader-level survival analysis.
+
+The sample is restricted to dyad-years in which Side A is classified as autocratic ($v2x\_libdem_a < 0.5$) and the year is 1946 or later (post-World War II international order).
+
+## Variables
+
+### Dependent Variables
+
+**`mid_initiated`** (Tier 1–2 analyses): Binary indicator equal to 1 when Side A initiates a Militarized Interstate Dispute, defined as `hihosta >= 2` (threat or use of force). Constructed in `02_data_prep.R`.
+
+**`targets_democracy`** (Tier 1–2 analyses): Binary indicator equal to 1 when the dyad's Side B is classified as democratic ($v2x\_libdem_b \geq 0.5$), conditional on MID initiation. For H2 and H4 models this variable is the dependent variable on the subset of initiator-years.
+
+**Leader tenure / exit hazard** (Tier 3 survival analysis): Measured in leader-years, with exit coded as an event indicator for Cox Proportional Hazard models.
+
+### Primary Independent Variables
+
+**`sidea_revisionist_domestic`** (H1, H2): GRAVE-D composite measure of leadership revisionist ideology for Side A's governing leadership. Higher values indicate stronger revisionist ideological orientation.
+
+**Support group variables** (H3, H4): GRAVE-D indicators for the regime's reliance on specific ideologically defined support groups:
+
+- `sidea_religious_support`
+- `sidea_party_elite_support`
+- `sidea_rural_worker_support`
+- `sidea_military_support`
+- `sidea_ethnic_racial_support`
+
+**`legit_ratio`** (H5, H6, H8): The ideological legitimation share, derived in `02_data_prep.R` as:
+$$
+\text{LegitRatio}_{it} = \frac{v2exl\_legitideol_{it}}{v2exl\_legitideol_{it} + v2exl\_legitperf_{it} + v2exl\_legitlead_{it} + 0.01}
+$$
+The small constant (0.01) prevents division by zero. Values range from 0 (no ideological legitimation relative to total) to approaching 1 (ideological legitimation dominates).
+
+**`sidea_dynamic_leader`** (H8 moderator): GRAVE-D binary indicator for dynamic or charismatic personal leadership, used to test the Messianic Autocrat hypothesis.
+
+### Control Variables
+
+| Variable | Source | Role |
+|---|---|---|
+| `log_cinc_a`, `log_cinc_b` | COW NMC | Capability controls (log-transformed) |
+| `cinc_ratio` | COW NMC | Relative capability balance |
+| `sidea_winning_coalition_size` | V-Dem/BdM | Selectorate theory control |
+| `cold_war` | Coded 1947–1991 | Historical period control |
+| `t`, `t2`, `t3` | Beck, Katz, Tucker (1998) | Temporal autocorrelation splines |
+
+## Model Specifications
+
+### Tier 1: Binary Time-Series Cross-Sectional Logit
+
+All Tier 1 models are standard logistic regressions (GLM, binomial family). Peace years splines (`t`, `t2`, `t3`) are added to models including temporal controls, following Beck, Katz, and Tucker [-@beck1998] to address temporal autocorrelation in BTSCS data. Each hypothesis is estimated in a sequence of five progressively specified models:
+
+1. IV only (baseline)
+2. IV + regime type controls
+3. IV + capability controls
+4. IV + capability + peace years splines
+5. IV + capability + peace years + Cold War dummy (full model)
+
+### Tier 2: Legitimation Mix
+
+H5 and H6 models use `legit_ratio` as the primary IV in the same sequential specification. Hurdle models (`pscl::hurdle`) are estimated alongside standard logits as sensitivity checks for zero-inflation.
+
+### Tier 3: Mediation, Moderation, and Survival
+
+**H7 — Mediation** uses the `mediation` package (Baron-Kenny framework with 1,000 bootstrap simulations) and `lavaan` (SEM). The treatment variable is `sidea_revisionist_domestic`, the mediator is the relevant support group variable, and the outcome is `targets_democracy`.
+
+**H8 — Moderation** estimates interaction models between `legit_ratio` and `sidea_dynamic_leader`. Both logit and linear probability model (LPM) specifications are reported; the LPM facilitates marginal effect interpretation of the interaction term.
+
+**H9 — Survival** uses Cox Proportional Hazard models estimated on the leader-level aggregated dataset. Four models are reported: (1) ideology main effect, (2) legitimation ratio main effect, (3) ideology $\times$ conflict interaction, (4) ratio $\times$ conflict interaction.
+
+## Data Preparation
+
+All data preparation is handled by `R/02_data_prep.R`. Key transformations include:
+
+- **Autocracy filter**: rows with $v2x\_libdem_a \geq 0.5$ are dropped before modeling.
+- **Log transformation** of CINC scores: `log_cinc_a = log(cinc_a + 0.001)` to handle near-zero values.
+- **Peace years derivation**: the `data.table`-based implementation follows Beck, Katz, and Tucker (1998), with left-censoring resolved by assuming 35 years of peace for regimes with no prior recorded conflict.
+- **`legit_ratio` construction**: as specified above.
+- **`ideology_gap`**: absolute difference in `v2exl_legitideol` between Side A and Side B, used as a dyadic IV in H3/H4 Model 6 specifications.
+- **Output**: cleaned datasets are saved as `.rds` objects in `ready_data/` (Git-ignored) to preserve factor levels and R attributes.
+
+```{r}
+#| label: descriptive-stats
+#| tbl-cap: "Descriptive statistics for key analysis variables"
+
+dyad_ready %>%
+  select(
+    mid_initiated, targets_democracy,
+    sidea_revisionist_domestic, legit_ratio,
+    sidea_dynamic_leader, log_cinc_a, log_cinc_b,
+    sidea_winning_coalition_size, cold_war
+  ) %>%
+  modelsummary::datasummary_skim(
+    fmt = 2,
+    histogram = FALSE,
+    title = "Descriptive Statistics"
+  )
+```
