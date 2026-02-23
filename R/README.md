@@ -67,4 +67,22 @@ All model scripts assume `00_packages.R` and `01_load_data.R` have been sourced 
 
 ---
 
+### `03_h1_h2_logit.R` — Logistic Regression for H1 and H2
+
+**Purpose:** Estimates the primary logistic regression models for Hypothesis 1 (conflict initiation) and Hypothesis 2 (target selection). Produces sequentially-specified GLM model lists saved as `.rds` objects for use by downstream reporting scripts.
+
+**Key design decisions:**
+
+- **Two-function architecture** — `estimate_h1_logit()` and `estimate_h2_logit()` are defined as separate named functions rather than a single omnibus script. This allows them to be sourced individually in testing contexts and makes the hypothesis-level boundaries explicit.
+- **H1: `mid_initiated` as DV** — uses the dyadic conflict initiation indicator (hihosta >= 2) constructed in `02_data_prep.R`. Five sequentially-specified models progress from ideology only → add target regime type → add CINC capabilities → add peace years cubic splines → add Cold War dummy. This mirrors the progressive specification logic in the 2025 repo's `h1_analysis.R`.
+- **H2: `targets_democracy` conditional on initiation** — H2 asks whether initiators disproportionately target democracies. The H2 function filters `dyad_ready` to `mid_initiated == 1` rows before modeling, matching the conditionality of the original hypothesis.
+- **`legit_ratio` as core IV** — replaces the `revisionist_ideology_a` variable used in the 2025 repo with the unified `legit_ratio` (ideological legitimation share) derived in `02_data_prep.R`. This is the standardized IV for the new project.
+- **CINC controls: `log_cinc_a`, `log_cinc_b`, `cinc_ratio`** — all three are included to capture both side-specific capability levels and relative capability balance, consistent with standard conflict onset models.
+- **Peace years as BTSCS control** — `t`, `t2`, `t3` cubic splines from `02_data_prep.R` are added in H1 Models 4–5 to correct for temporal autocorrelation in binary time-series cross-sectional data (Beck, Katz, and Tucker 1998).
+- **Results saved to `results/`** — models are serialized as `.rds` to `results/h1_logit_models.rds` and `results/h2_logit_models.rds`. This folder is Git-ignored and must exist before running; `dir.create("results", showWarnings = FALSE)` handles this automatically.
+
+---
+
+_This README is updated as each new script is added to the `R/` directory._
+
 *This README is updated as each new script is added to the `R/` directory.*
