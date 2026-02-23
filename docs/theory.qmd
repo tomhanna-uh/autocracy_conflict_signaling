@@ -1,0 +1,71 @@
+# Theory {#sec-theory}
+
+## Introduction
+
+Why do leaders of autocratic states pursue costly revisionist foreign policies that threaten the survival of the regime they are trying to hold together? The standard assumption in the literature is either that ideological leaders hold sincere personal preferences for reshaping the international order, or that they exploit nationalist conflict frames to deflect domestic discontent. Neither explanation resolves the fundamental tension between the dictator's paramount interest in political survival and the material costs that external revisionism imposes on the support coalition that keeps the dictator in power.
+
+This chapter advances a third explanation: **ideological signaling**. Radical revisionist domestic ideologies are costly to credibly maintain in the long run. A dictator who publicly espouses a transformative ideology — revolutionary socialism, religious expansionism, ultra-nationalism — creates a commitment problem. Domestic supporters who share or materially benefit from that ideology need to be convinced that the leader's commitment is real and will not be quietly abandoned when it becomes inconvenient. Initiating conflict against ideologically defined external enemies provides exactly this kind of costly, observable, and reversible signal.
+
+The theoretical contribution of this project is thus to identify the *domestic audience* for revisionist foreign policy: not the general public as in selectorate or audience cost models, but the *ideologically defined support coalition* — the specific groups whose loyalty the dictator must maintain to stay in office.
+
+## Three Ideal Types
+
+The theory competes against two alternative explanations, which are formalized as ideal type models:
+
+### The Ideological Autocrat
+
+The simplest explanation is that ideologically extreme leaders pursue revisionist foreign policies because they sincerely want to. On this view, leadership ideology is a direct cause of conflict behavior: more ideologically revisionist leaders are more willing to bear the costs of conflict because the expected benefits — reshaping the international order to match their preferences — are subjectively large. This is the *Ideological Autocrat* hypothesis.
+
+This explanation predicts that the effect of regime ideology on conflict should be mediated primarily by leadership characteristics, not by the composition of the support coalition. It also predicts that the effect should be strongest when the leader has maximum autonomy — when personalist leadership is high and the support coalition is narrow.
+
+### The Rational Autocrat
+
+The *Rational Autocrat* hypothesis, which this project advances as the primary theoretical contribution, argues that external conflict serves a domestic signaling function. The logic proceeds in four steps:
+
+1. **Regime survival requires coalition loyalty.** Following Bueno de Mesquita et al. [-@bdm2003], dictators rely on a minimal winning coalition of essential supporters. These supporters provide political and organizational resources in exchange for private benefits.
+
+2. **Ideological support groups have ideological preferences.** Some coalition members — religious organizations, revolutionary parties, ethnic nationalist militias — are ideologically motivated. Their loyalty is partly conditional on the regime's ideological credibility.
+
+3. **Ideological commitment is subject to credibility problems.** A dictator who espouses a transformative ideology faces a time-inconsistency problem. Ideologically committed supporters cannot easily verify whether the leader's commitment is sincere or strategic. Talk is cheap.
+
+4. **External conflict against ideological targets is a costly signal.** Initiating a militarized dispute against a state defined as the ideological enemy — a democracy for a revolutionary socialist regime, a neighboring secular state for a religious expansionist regime — is observable, costly, and cannot be easily faked. It therefore serves as a credible signal of ideological commitment to domestic supporters.
+
+The key prediction distinguishing the Rational Autocrat from the Ideological Autocrat is that the effect of ideology on conflict should be *mediated* by support group composition: the relationship should be stronger when the regime depends heavily on ideologically defined support groups (H7), and it should be attenuated when controlling for support group ideology independently of leadership ideology (H3, H4).
+
+### The Messianic Autocrat
+
+The *Messianic Autocrat* hypothesis, corresponding to the 2024 source repository's alternative hypotheses (A1/A2/A3), attributes the ideology-conflict link to dynamic personal leadership characteristics rather than either sincere ideology or coalition signaling. On this view, charismatic and personally dominant leaders are more willing to take foreign policy risks regardless of the institutional source of their ideological legitimation.
+
+This explanation predicts an interaction between leadership ideology and dynamic personal leadership indicators: the conflict-generating effect of ideology should be *amplified* by high personal dynamism. This is the prediction tested directly in **H8**.
+
+## Formal Hypotheses
+
+The hypotheses are organized into three analytical tiers, moving from simplest to most complex models:
+
+### Tier 1: Simple Logistic Regression
+
+**H1 — The Ideological Autocrat, Initiation:** Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate a revisionist MID than other autocratic states, all else equal.
+
+**H2 — The Ideological Autocrat, Targeting:** Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate revisionist MIDs targeting democracies than other autocratic states, all else equal.
+
+**H3 — The Rational Autocrat, Initiation:** Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate a revisionist MID than other autocratic states, all else equal.
+
+**H4 — The Rational Autocrat, Targeting:** Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate MIDs targeting democracies than other autocratic states, all else equal.
+
+### Tier 2: Legitimation Mix
+
+**H5 — Legitimation Mix, Initiation:** The relative dependence on ideological legitimation (compared to performance or personalist legitimation) increases the likelihood of conflict initiation, all else equal.
+
+**H6 — Legitimation Mix, Targeting:** The relative dependence on ideological legitimation increases the likelihood of targeting democracies, all else equal.
+
+### Tier 3: Mediation, Moderation, and Survival
+
+**H7 — Mediation, Support Groups:** The effect of revisionist leadership ideology on targeting democracies is mediated by the leader's dependence on ideologically associated support groups.
+
+**H8 — Moderation, Dynamic Leadership:** Dynamic personal leadership qualities moderate (amplify) the effect of revisionist ideology on conflict behavior.
+
+**H9 — Survival Mediation:** Conflict initiation against ideological targets increases leader survival by enhancing domestic ideological legitimation.
+
+## Scope Conditions
+
+The theory applies to autocratic regimes with non-trivial ideological legitimation claims. Pure personalist dictatorships with no ideological base, and regimes that survive entirely on performance legitimation (economic output, stability), are outside the core scope. The empirical analysis restricts the sample to states classified as autocratic using the V-Dem liberal democracy index ($v2x\_libdem < 0.5$) and to the post-1945 period where GRAVE-D leadership ideology data are available.
