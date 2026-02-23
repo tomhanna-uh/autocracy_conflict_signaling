@@ -1,0 +1,84 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Autocracy, Conflict, and Ideological Signaling"
+  author:
+    - name: Tom Hanna
+      orcid: 0000-0002-8054-0335
+      affiliation: University of Houston, Department of Political Science
+      email: tlhanna@central.uh.edu
+  date: today
+  date-format: "MMMM D, YYYY"
+  doi: ""
+  license: CC BY-NC-SA 4.0
+  copyright: "Tom Hanna, 2020–2025"
+
+  chapters:
+    - index.qmd
+    - theory.qmd
+    - data_methods.qmd
+    - results_h1_h4.qmd
+    - results_h5_h6.qmd
+    - results_h7_h9.qmd
+    - appendix.qmd
+    - references.qmd
+
+  sidebar:
+    search: true
+
+bibliography: references.bib
+csl: american-political-science-review.csl
+
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-summary: "Show code"
+    fig-width: 7
+    fig-height: 5
+    fig-dpi: 300
+    self-contained: false
+    smooth-scroll: true
+    reference-location: margin
+  pdf:
+    documentclass: article
+    papersize: letter
+    fontsize: 12pt
+    geometry:
+      - margin=1in
+    toc: true
+    number-sections: true
+    colorlinks: true
+    fig-width: 6
+    fig-height: 4
+    include-in-header:
+      text: |
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{dcolumn}
+  docx:
+    toc: true
+    number-sections: true
+    fig-width: 6
+    fig-height: 4
+
+editor: source
+
+# Global knitr options
+knitr:
+  opts_chunk:
+    comment: "#>"
+    collapse: true
