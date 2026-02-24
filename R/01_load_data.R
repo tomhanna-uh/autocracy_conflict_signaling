@@ -14,6 +14,14 @@
 library(here)
 library(tidyverse)
 
+source("R/check_paths.R")
+
+grave_d_path <- check_grave_d_path("GRAVE_D_Master_with_Leaders.csv")
+
+grave_d <- readr::read_csv(grave_d_path)
+
+
+
 # -----------------------------------------------------------------------------
 # Expected column sets
 # Used for validation; stops early with a clear error if columns are missing.
