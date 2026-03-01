@@ -3,7 +3,7 @@
 # via a relative path and print the resolved absolute path.
 
 check_grave_d_path <- function(
-                      filename = "GRAVE_D_Master.csv"
+                                            filename = "GRAVE_D_Master_with_Leaders.csv"
 ) {
   # Expected relative path from autocracy_conflict_signaling/
   rel_path <- file.path("..", "grave_d_data2026", "ready_data", filename)
