@@ -1,9 +1,9 @@
 # ==============================================================================
 # 04_h3_h4_logit.R — Logit Analysis for Hypotheses 3 and 4
 # H3: The Rational Autocrat — Initiation
-#   Support group ideology → MID initiation
+#    Support group ideology → MID initiation
 # H4: The Rational Autocrat — Targeting
-#   Support group ideology → MID targeting of democracies
+#    Support group ideology → MID targeting of democracies
 # Tier 1: Simple Logistic Regression
 # ==============================================================================
 
@@ -21,7 +21,7 @@ source("R/02_data_prep.R")
 #   sidea_ethnic_racial_support    = ethnic/racial group regime support
 # mid_initiated   = binary: hostility level >= 2 (DV for H3)
 # targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H4)
-# sidea_national_military_capabilities = COW CINC (capabilities control)
+# cinc_a = COW CINC (capabilities control)
 # sidea_winning_coalition_size = V-Dem/BdM selectorate control
 # All variables constructed in 02_data_prep.R
 # ------------------------------------------------------------------------------
@@ -66,25 +66,25 @@ estimate_h3_logit <- function(data) {
 
   # h3_controls: Multi support + capability controls
   h3_controls <- glm(mid_initiated ~ sidea_religious_support +
-                       sidea_party_elite_support +
-                       sidea_rural_worker_support +
-                       sidea_military_support +
-                       sidea_ethnic_racial_support +
-                       sidea_national_military_capabilities +
-                       sidea_winning_coalition_size,
+                      sidea_party_elite_support +
+                      sidea_rural_worker_support +
+                      sidea_military_support +
+                      sidea_ethnic_racial_support +
+                      cinc_a +
+                      sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = data)
 
   # h3_full: Full model with targets + temporal controls
   h3_full <- glm(mid_initiated ~ sidea_religious_support +
-                   sidea_party_elite_support +
-                   sidea_rural_worker_support +
-                   sidea_military_support +
-                   sidea_ethnic_racial_support +
-                   targets_democracy +
-                   sidea_national_military_capabilities +
-                   sidea_winning_coalition_size +
-                   t + t2 + t3 + cold_war,
+                  sidea_party_elite_support +
+                  sidea_rural_worker_support +
+                  sidea_military_support +
+                  sidea_ethnic_racial_support +
+                  targets_democracy +
+                  cinc_a +
+                  sidea_winning_coalition_size +
+                  t + t2 + t3 + cold_war,
                  family = binomial(link = "logit"),
                  data = data)
 
@@ -141,24 +141,24 @@ estimate_h4_logit <- function(data) {
 
   # h4_controls: Multi support + capability controls
   h4_controls <- glm(targets_democracy ~ sidea_religious_support +
-                       sidea_party_elite_support +
-                       sidea_rural_worker_support +
-                       sidea_military_support +
-                       sidea_ethnic_racial_support +
-                       sidea_national_military_capabilities +
-                       sidea_winning_coalition_size,
+                      sidea_party_elite_support +
+                      sidea_rural_worker_support +
+                      sidea_military_support +
+                      sidea_ethnic_racial_support +
+                      cinc_a +
+                      sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = conflict_data)
 
   # h4_full: Full model with temporal controls
   h4_full <- glm(targets_democracy ~ sidea_religious_support +
-                   sidea_party_elite_support +
-                   sidea_rural_worker_support +
-                   sidea_military_support +
-                   sidea_ethnic_racial_support +
-                   sidea_national_military_capabilities +
-                   sidea_winning_coalition_size +
-                   t + cold_war,
+                  sidea_party_elite_support +
+                  sidea_rural_worker_support +
+                  sidea_military_support +
+                  sidea_ethnic_racial_support +
+                  cinc_a +
+                  sidea_winning_coalition_size +
+                  t + cold_war,
                  family = binomial(link = "logit"),
                  data = conflict_data)
 
