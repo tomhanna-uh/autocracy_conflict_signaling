@@ -1,9 +1,9 @@
 # ==============================================================================
-# 03_h1_h2_logit.R — Logit Analysis for Hypotheses 1 and 2
-# H1: The Ideological Autocrat — Initiation
-#   Leader ideology (sidea_revisionist_domestic) → MID initiation
-# H2: The Ideological Autocrat — Targeting
-#   Leader ideology → MID targeting of democracies
+# 03_h1_h2_logit.R -- Logit Analysis for Hypotheses 1 and 2
+# H1: The Ideological Autocrat -- Initiation
+#   Leader ideology (sidea_revisionist_domestic) -> MID initiation
+# H2: The Ideological Autocrat -- Targeting
+#   Leader ideology -> MID targeting of democracies
 # Tier 1: Simple Logistic Regression
 # ==============================================================================
 
@@ -18,14 +18,14 @@ source("R/02_data_prep.R")
 #              _revisionist_domestic
 # mid_initiated   = binary: hostility level >= 2 (DV for H1)
 # targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H2)
-# sidea_national_military_capabilities = COW CINC (capabilities control)
+# cinc_a = COW CINC (capabilities control)
 # sidea_winning_coalition_size = V-Dem/BdM selectorate control
 # v2x_libdem_b    = V-Dem liberal democracy score of Side B
 # All variables constructed in 02_data_prep.R
 # ------------------------------------------------------------------------------
 
 # ==============================================================================
-# 1. Hypothesis 1: The Ideological Autocrat — Initiation ----
+# 1. Hypothesis 1: The Ideological Autocrat -- Initiation ----
 # H1: Autocratic states with higher levels of revisionist domestic leadership
 #     ideology will be more likely to originate a revisionist MID than other
 #     autocratic states, all else equal.
@@ -36,7 +36,7 @@ source("R/02_data_prep.R")
 #' Estimate H1 Logit Models (Leader Ideology -> MID Initiation)
 #' @param data Prepared dyadic data (dyad_ready)
 #' @return A named list of GLM objects: h1_baseline, h1_controls, h1_full,
-#'   h1_religious, h1_socialist, h1_nationalist
+#'     h1_religious, h1_socialist, h1_nationalist
 estimate_h1_logit <- function(data) {
 
   # h1_baseline: Leader ideology only
@@ -46,7 +46,7 @@ estimate_h1_logit <- function(data) {
 
   # h1_controls: Add capabilities and selectorate controls
   h1_controls <- glm(mid_initiated ~ sidea_revisionist_domestic +
-                       sidea_national_military_capabilities +
+                       cinc_a +
                        sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = data)
@@ -54,7 +54,7 @@ estimate_h1_logit <- function(data) {
   # h1_full: Add target regime type + temporal controls
   h1_full <- glm(mid_initiated ~ sidea_revisionist_domestic +
                    targets_democracy +
-                   sidea_national_military_capabilities +
+                   cinc_a +
                    sidea_winning_coalition_size +
                    t + t2 + t3 + cold_war,
                  family = binomial(link = "logit"),
@@ -63,7 +63,7 @@ estimate_h1_logit <- function(data) {
   # Sub-hypothesis models by ideology type
   h1_religious <- glm(mid_initiated ~ sidea_religious_revisionist_domestic +
                         targets_democracy +
-                        sidea_national_military_capabilities +
+                        cinc_a +
                         sidea_winning_coalition_size +
                         t + t2 + t3 + cold_war,
                       family = binomial(link = "logit"),
@@ -71,7 +71,7 @@ estimate_h1_logit <- function(data) {
 
   h1_socialist <- glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
                         targets_democracy +
-                        sidea_national_military_capabilities +
+                        cinc_a +
                         sidea_winning_coalition_size +
                         t + t2 + t3 + cold_war,
                       family = binomial(link = "logit"),
@@ -79,24 +79,24 @@ estimate_h1_logit <- function(data) {
 
   h1_nationalist <- glm(mid_initiated ~ sidea_nationalist_revisionist_domestic +
                           targets_democracy +
-                          sidea_national_military_capabilities +
+                          cinc_a +
                           sidea_winning_coalition_size +
                           t + t2 + t3 + cold_war,
                         family = binomial(link = "logit"),
                         data = data)
 
   return(list(
-    h1_baseline   = h1_baseline,
-    h1_controls   = h1_controls,
-    h1_full       = h1_full,
-    h1_religious  = h1_religious,
-    h1_socialist  = h1_socialist,
+    h1_baseline    = h1_baseline,
+    h1_controls    = h1_controls,
+    h1_full        = h1_full,
+    h1_religious   = h1_religious,
+    h1_socialist   = h1_socialist,
     h1_nationalist = h1_nationalist
   ))
 }
 
 # ==============================================================================
-# 2. Hypothesis 2: The Ideological Autocrat — Targeting ----
+# 2. Hypothesis 2: The Ideological Autocrat -- Targeting ----
 # H2: Autocratic states with higher levels of revisionist domestic leadership
 #     ideology will be more likely to originate revisionist MIDs targeting
 #     democracies than other autocratic states, all else equal.
@@ -107,7 +107,7 @@ estimate_h1_logit <- function(data) {
 #' Estimate H2 Logit Models (Leader Ideology -> Democracy Targeting)
 #' @param data Prepared dyadic data (dyad_ready)
 #' @return A named list of GLM objects: h2_baseline, h2_controls, h2_full,
-#'   h2_religious, h2_socialist, h2_nationalist
+#'     h2_religious, h2_socialist, h2_nationalist
 estimate_h2_logit <- function(data) {
 
   # Filter to conflict initiations only
@@ -120,14 +120,14 @@ estimate_h2_logit <- function(data) {
 
   # h2_controls: Add capabilities and selectorate
   h2_controls <- glm(targets_democracy ~ sidea_revisionist_domestic +
-                       sidea_national_military_capabilities +
+                       cinc_a +
                        sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = conflict_data)
 
   # h2_full: Add temporal controls
   h2_full <- glm(targets_democracy ~ sidea_revisionist_domestic +
-                   sidea_national_military_capabilities +
+                   cinc_a +
                    sidea_winning_coalition_size +
                    t + cold_war,
                  family = binomial(link = "logit"),
@@ -135,32 +135,32 @@ estimate_h2_logit <- function(data) {
 
   # Sub-hypothesis models by ideology type
   h2_religious <- glm(targets_democracy ~ sidea_religious_revisionist_domestic +
-                        sidea_national_military_capabilities +
+                        cinc_a +
                         sidea_winning_coalition_size +
                         t + cold_war,
                       family = binomial(link = "logit"),
                       data = conflict_data)
 
   h2_socialist <- glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
-                        sidea_national_military_capabilities +
+                        cinc_a +
                         sidea_winning_coalition_size +
                         t + cold_war,
                       family = binomial(link = "logit"),
                       data = conflict_data)
 
   h2_nationalist <- glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
-                          sidea_national_military_capabilities +
+                          cinc_a +
                           sidea_winning_coalition_size +
                           t + cold_war,
                         family = binomial(link = "logit"),
                         data = conflict_data)
 
   return(list(
-    h2_baseline   = h2_baseline,
-    h2_controls   = h2_controls,
-    h2_full       = h2_full,
-    h2_religious  = h2_religious,
-    h2_socialist  = h2_socialist,
+    h2_baseline    = h2_baseline,
+    h2_controls    = h2_controls,
+    h2_full        = h2_full,
+    h2_religious   = h2_religious,
+    h2_socialist   = h2_socialist,
     h2_nationalist = h2_nationalist
   ))
 }
