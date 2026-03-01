@@ -1,9 +1,9 @@
 # ==============================================================================
 # 05_h5_h6_legitmix.R — Legitimation Mix Analysis for Hypotheses 5 and 6
 # H5: Legitimation Mix — Initiation
-#   Relative ideological legitimation dependence → conflict initiation
+#    Relative ideological legitimation dependence → conflict initiation
 # H6: Legitimation Mix — Targeting
-#   Relative ideological legitimation dependence → democracy targeting
+#    Relative ideological legitimation dependence → democracy targeting
 # Tier 2: Logistic + Hurdle Models
 # ==============================================================================
 
@@ -18,8 +18,8 @@ source("R/02_data_prep.R")
 # v2exl_legitperf_a  = V-Dem performance legitimation score (Side A)
 # legit_ratio        = v2exl_legitideol_a / legit_total (from 02_data_prep.R)
 # legit_total        = sum of all three legitimation components
-# mid_initiated      = binary: hostility level >= 2 (DV for H5)
-# targets_democracy  = binary: v2x_libdem_b >= 0.5 (DV for H6)
+# mid_initiated   = binary: hostility level >= 2 (DV for H5)
+# targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H6)
 # All variables constructed in 02_data_prep.R
 # ------------------------------------------------------------------------------
 
@@ -44,24 +44,24 @@ estimate_h5_logit <- function(data) {
 
   # h5_components: Add legitimation components (decomposition)
   h5_components <- glm(mid_initiated ~ legit_ratio +
-                         v2exl_legitperf_a + v2exl_legitlead_a,
+                        v2exl_legitperf_a + v2exl_legitlead_a,
                        family = binomial(link = "logit"),
                        data = data)
 
   # h5_controls: Add capabilities and selectorate
   h5_controls <- glm(mid_initiated ~ legit_ratio +
-                       sidea_national_military_capabilities +
-                       sidea_winning_coalition_size,
+                      cinc_a +
+                      sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = data)
 
   # h5_full: Full model with target regime + temporal controls
   h5_full <- glm(mid_initiated ~ legit_ratio +
-                   v2exl_legitperf_a + v2exl_legitlead_a +
-                   targets_democracy +
-                   sidea_national_military_capabilities +
-                   sidea_winning_coalition_size +
-                   t + t2 + t3 + cold_war,
+                  v2exl_legitperf_a + v2exl_legitlead_a +
+                  targets_democracy +
+                  cinc_a +
+                  sidea_winning_coalition_size +
+                  t + t2 + t3 + cold_war,
                  family = binomial(link = "logit"),
                  data = data)
 
@@ -77,24 +77,26 @@ estimate_h5_logit <- function(data) {
 #' @param data Prepared dyadic data (dyad_ready)
 #' @return A named list: hurdle_initiation (logit part) and hurdle_count (count part)
 estimate_h5_hurdle <- function(data) {
+
   # Part 1 (binary hurdle): Does legitimation mix predict any conflict?
   hurdle_binary <- glm(mid_initiated ~ legit_ratio +
-                         v2exl_legitperf_a + v2exl_legitlead_a +
-                         targets_democracy +
-                         sidea_national_military_capabilities +
-                         sidea_winning_coalition_size +
-                         t + t2 + t3 + cold_war,
+                        v2exl_legitperf_a + v2exl_legitlead_a +
+                        targets_democracy +
+                        cinc_a +
+                        sidea_winning_coalition_size +
+                        t + t2 + t3 + cold_war,
                        family = binomial(link = "logit"),
                        data = data)
 
   # Part 2 (count): Among conflict initiators, does legitimation mix predict
   # number of MIDs? (uses Poisson; swap for negative binomial if overdispersed)
   initiators <- data %>% filter(mid_initiated == 1)
+
   hurdle_count <- glm(mid_initiated ~ legit_ratio +
-                        v2exl_legitperf_a + v2exl_legitlead_a +
-                        sidea_national_military_capabilities +
-                        sidea_winning_coalition_size +
-                        cold_war,
+                       v2exl_legitperf_a + v2exl_legitlead_a +
+                       cinc_a +
+                       sidea_winning_coalition_size +
+                       cold_war,
                       family = poisson(link = "log"),
                       data = initiators)
 
@@ -127,31 +129,31 @@ estimate_h6_logit <- function(data) {
 
   # h6_components: Add legitimation components
   h6_components <- glm(targets_democracy ~ legit_ratio +
-                         v2exl_legitperf_a + v2exl_legitlead_a,
+                        v2exl_legitperf_a + v2exl_legitlead_a,
                        family = binomial(link = "logit"),
                        data = conflict_data)
 
   # h6_controls: Add capabilities and selectorate
   h6_controls <- glm(targets_democracy ~ legit_ratio +
-                       sidea_national_military_capabilities +
-                       sidea_winning_coalition_size,
+                      cinc_a +
+                      sidea_winning_coalition_size,
                      family = binomial(link = "logit"),
                      data = conflict_data)
 
   # h6_full: Full model with temporal controls
   h6_full <- glm(targets_democracy ~ legit_ratio +
-                   v2exl_legitperf_a + v2exl_legitlead_a +
-                   sidea_national_military_capabilities +
-                   sidea_winning_coalition_size +
-                   t + cold_war,
+                  v2exl_legitperf_a + v2exl_legitlead_a +
+                  cinc_a +
+                  sidea_winning_coalition_size +
+                  t + cold_war,
                  family = binomial(link = "logit"),
                  data = conflict_data)
 
   # h6_interaction: Interaction of ideological ratio with leader ideology (test of H1xH5)
   h6_interaction <- glm(targets_democracy ~ legit_ratio * sidea_revisionist_domestic +
-                          sidea_national_military_capabilities +
-                          sidea_winning_coalition_size +
-                          t + cold_war,
+                         cinc_a +
+                         sidea_winning_coalition_size +
+                         t + cold_war,
                         family = binomial(link = "logit"),
                         data = conflict_data)
 
@@ -173,7 +175,7 @@ h5_logit_models  <- estimate_h5_logit(dyad_ready)
 h5_hurdle_models <- estimate_h5_hurdle(dyad_ready)
 
 # Run H6 models
-h6_logit_models  <- estimate_h6_logit(dyad_ready)
+h6_logit_models <- estimate_h6_logit(dyad_ready)
 
 # Save results for reporting scripts
 dir.create("results", showWarnings = FALSE)
