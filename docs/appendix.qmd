@@ -37,7 +37,7 @@ key_vars <- dyad_ready %>%
     v2exl_legitperf_a,
     v2exl_legitlead_a,
     sidea_winning_coalition_size,
-    sidea_national_military_capabilities,
+    cinc_a,
     sidea_religious_support,
     sidea_party_elite_support,
     sidea_military_support,
@@ -88,10 +88,13 @@ library(ggcorrplot)
 
 corr_data <- dyad_ready %>%
   select(
-    sidea_revisionist_domestic, legit_ratio,
-    v2exl_legitperf_a, v2exl_legitlead_a,
+    sidea_revisionist_domestic,
+    legit_ratio,
+    v2exl_legitperf_a,
+    v2exl_legitlead_a,
     sidea_winning_coalition_size,
-    sidea_religious_support, sidea_military_support,
+    sidea_religious_support,
+    sidea_military_support,
     sidea_dynamic_leader
   ) %>%
   drop_na()
@@ -100,11 +103,11 @@ corr_matrix <- cor(corr_data)
 
 ggcorrplot(
   corr_matrix,
-  hc.order  = TRUE,
-  type      = "lower",
-  lab       = TRUE,
-  lab_size  = 3,
-  ggtheme   = ggplot2::theme_minimal()
+  hc.order = TRUE,
+  type = "lower",
+  lab = TRUE,
+  lab_size = 3,
+  ggtheme = ggplot2::theme_minimal()
 )
 ```
 
@@ -134,17 +137,17 @@ firth_h3 <- logistf(
 # Results compared to main logit estimates
 modelsummary(
   list(
-    "H1 (Firth)"  = firth_h1,
-    "H1 (Logit)"  = h1_models$h1_full,
-    "H3 (Firth)"  = firth_h3,
-    "H3 (Logit)"  = h3_models$h3_full
+    "H1 (Firth)" = firth_h1,
+    "H1 (Logit)" = h1_models$h1_full,
+    "H3 (Firth)" = firth_h3,
+    "H3 (Logit)" = h3_models$h3_full
   ),
   coef_map = c(
     sidea_revisionist_domestic = "Revisionist Ideology",
-    legit_ratio                = "Legitimation Ratio",
-    log_cinc_a                 = "Log CINC (A)",
+    legit_ratio = "Legitimation Ratio",
+    log_cinc_a = "Log CINC (A)",
     sidea_winning_coalition_size = "Winning Coalition",
-    cold_war                   = "Cold War"
+    cold_war = "Cold War"
   ),
   stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
   gof_omit = "AIC|BIC|Log"
@@ -193,7 +196,9 @@ stargazer(
     "Legitimation Ratio",
     "Conflict × Ideo. Legit.",
     "Conflict × Legit. Ratio",
-    "Autocracy Level", "Log GDP", "Log Pop", "Irregular Entry"
+    "Autocracy Level",
+    "Log GDP", "Log Pop",
+    "Irregular Entry"
   ),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
