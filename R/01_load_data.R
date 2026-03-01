@@ -16,7 +16,7 @@ library(tidyverse)
 
 source("R/check_paths.R")
 
-grave_d_path <- check_grave_d_path("GRAVE_D_Master.csv")
+grave_d_path <- check_grave_d_path("GRAVE_D_Master_with_Leaders.csv")
 
 grave_d <- readr::read_csv(grave_d_path)
 
@@ -113,7 +113,7 @@ grave_d <- readr::read_csv(grave_d_path)
 # Loads the master dyadic dataset.
 #
 # Arguments:
-#   filepath   -- path to CSV; defaults to data/GRAVE_D_Master.csv
+#   filepath   -- path to CSV; defaults to data/GRAVE_D_Master_with_Leaders.csv
 #   year_min   -- earliest year to retain (default 1946)
 #   autoc_max  -- V-Dem liberal democracy ceiling for Side A autocracy filter
 #                 (default 0.5; rows where v2x_libdem_a >= autoc_max are dropped)
@@ -124,7 +124,7 @@ grave_d <- readr::read_csv(grave_d_path)
 # -----------------------------------------------------------------------------
 
 load_dyad_data <- function(
-    filepath  = here("data", "GRAVE_D_Master.csv"),
+        filepath  = here("data", "GRAVE_D_Master_with_Leaders.csv"),
     year_min  = 1946L,
     autoc_max = 0.5,
     warn_grave = TRUE
@@ -133,7 +133,7 @@ load_dyad_data <- function(
     stop(
       sprintf(
         "[load_dyad_data] Data file not found:\n  %s\n",
-        "Place GRAVE_D_Master.csv in the data/ directory."
+                "Place GRAVE_D_Master_with_Leaders.csv in the data/ directory."
       )
     )
   }
