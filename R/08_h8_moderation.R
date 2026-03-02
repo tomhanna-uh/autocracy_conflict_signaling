@@ -31,7 +31,6 @@ strip_glm <- function(model) {
   model$linear.predictors <- NULL; model$fitted.values <- NULL
   model$residuals <- NULL; model$weights <- NULL
   model$prior.weights <- NULL; model$effects <- NULL
-  if (!is.null(model$qr)) model$qr$qr <- NULL
   attr(model$terms, ".Environment") <- globalenv()
   model
 }
