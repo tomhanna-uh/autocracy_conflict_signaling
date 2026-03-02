@@ -21,7 +21,7 @@ h7_vars <- c(
 )
 h7_vars <- intersect(h7_vars, names(dyad_ready))
 h7_data <- dyad_ready[, h7_vars, drop = FALSE]
-rm(dyad_ready, monadic_ready)
+# NOTE: dyad_ready/monadic_ready kept in memory for pipeline efficiency
 gc()
 message(sprintf("[07] h7_data: %d rows x %d cols, %s",
                 nrow(h7_data), ncol(h7_data),
