@@ -39,11 +39,13 @@ h12_vars <- c(
   "cinc_a", "sidea_winning_coalition_size",
   "t", "t2", "t3", "cold_war"
 )
+
 # Keep only columns that actually exist (sub-types may be absent)
 h12_vars <- intersect(h12_vars, names(dyad_ready))
 h12_data <- dyad_ready[, h12_vars, drop = FALSE]
-rm(dyad_ready, monadic_ready)   # free the large frames
+rm(dyad_ready, monadic_ready)  # free the large frames
 gc()
+
 message(sprintf("[03] h12_data: %d rows x %d cols, %s",
                 nrow(h12_data), ncol(h12_data),
                 format(object.size(h12_data), units = "MB")))
@@ -83,8 +85,10 @@ strip_glm <- function(model) {
 # All returned models are stripped to minimise saved object size.
 # ------------------------------------------------------------------------------
 safe_glm <- function(formula, data, min_obs = 30) {
+
   # Extract variable names from the formula
   vars <- all.vars(formula)
+
   # Check that all variables exist and have non-NA data
   for (v in vars) {
     if (!v %in% names(data)) {
@@ -96,6 +100,7 @@ safe_glm <- function(formula, data, min_obs = 30) {
       return(NULL)
     }
   }
+
   # Check complete cases
   complete <- complete.cases(data[, vars, drop = FALSE])
   n_complete <- sum(complete)
@@ -106,11 +111,13 @@ safe_glm <- function(formula, data, min_obs = 30) {
     ))
     return(NULL)
   }
+
   # Primary: Firth penalized logit via brglm2
   if (requireNamespace("brglm2", quietly = TRUE)) {
     fit <- tryCatch(
       glm(formula, family = binomial(link = "logit"), data = data,
-          method = brglm2::brglmFit),
+          method = brglm2::brglmFit,
+          control = list(maxit = 300, epsilon = 1e-6)),
       error = function(e) {
         warning(sprintf("[03] brglm2 failed: %s. Trying standard glm.", e$message))
         NULL
@@ -122,6 +129,7 @@ safe_glm <- function(formula, data, min_obs = 30) {
       return(strip_glm(fit))
     }
   }
+
   # Fallback: standard glm with increased maxit
   fit <- tryCatch(
     glm(formula, family = binomial(link = "logit"), data = data,
@@ -140,34 +148,42 @@ safe_glm <- function(formula, data, min_obs = 30) {
 # ==============================================================================
 # 1. Hypothesis 1: The Ideological Autocrat -- Initiation ----
 # ==============================================================================
+
 estimate_h1_logit <- function(data) {
+
   h1_baseline <- safe_glm(mid_initiated ~ sidea_revisionist_domestic,
                            data = data)
+
   h1_controls <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
                              cinc_a +
                              sidea_winning_coalition_size,
                            data = data)
-  h1_full     <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
-                             targets_democracy +
-                             cinc_a +
+
+  h1_full <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
+                        targets_democracy +
+                        cinc_a +
+                        sidea_winning_coalition_size +
+                        t + t2 + t3 + cold_war,
+                      data = data)
+
+  h1_religious <- safe_glm(mid_initiated ~ sidea_religious_revisionist_domestic +
+                             targets_democracy + cinc_a +
                              sidea_winning_coalition_size +
                              t + t2 + t3 + cold_war,
                            data = data)
-  h1_religious   <- safe_glm(mid_initiated ~ sidea_religious_revisionist_domestic +
-                               targets_democracy + cinc_a +
-                               sidea_winning_coalition_size +
-                               t + t2 + t3 + cold_war,
-                             data = data)
-  h1_socialist   <- safe_glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
-                               targets_democracy + cinc_a +
-                               sidea_winning_coalition_size +
-                               t + t2 + t3 + cold_war,
-                             data = data)
+
+  h1_socialist <- safe_glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
+                             targets_democracy + cinc_a +
+                             sidea_winning_coalition_size +
+                             t + t2 + t3 + cold_war,
+                           data = data)
+
   h1_nationalist <- safe_glm(mid_initiated ~ sidea_nationalist_revisionist_domestic +
                                targets_democracy + cinc_a +
                                sidea_winning_coalition_size +
                                t + t2 + t3 + cold_war,
                              data = data)
+
   list(
     h1_baseline    = h1_baseline,
     h1_controls    = h1_controls,
@@ -181,8 +197,11 @@ estimate_h1_logit <- function(data) {
 # ==============================================================================
 # 2. Hypothesis 2: The Ideological Autocrat -- Targeting ----
 # ==============================================================================
+
 estimate_h2_logit <- function(data) {
+
   conflict_data <- data %>% filter(mid_initiated == 1)
+
   if (nrow(conflict_data) == 0) {
     warning("[03] No conflict initiations found. H2 models skipped.")
     return(list(
@@ -190,29 +209,36 @@ estimate_h2_logit <- function(data) {
       h2_religious = NULL, h2_socialist = NULL, h2_nationalist = NULL
     ))
   }
+
   h2_baseline <- safe_glm(targets_democracy ~ sidea_revisionist_domestic,
                            data = conflict_data)
+
   h2_controls <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
                              cinc_a +
                              sidea_winning_coalition_size,
                            data = conflict_data)
-  h2_full     <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
-                             cinc_a +
-                             sidea_winning_coalition_size +
+
+  h2_full <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
+                        cinc_a +
+                        sidea_winning_coalition_size +
+                        t + cold_war,
+                      data = conflict_data)
+
+  h2_religious <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
+                             cinc_a + sidea_winning_coalition_size +
                              t + cold_war,
                            data = conflict_data)
-  h2_religious   <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
-                               cinc_a + sidea_winning_coalition_size +
-                               t + cold_war,
-                             data = conflict_data)
-  h2_socialist   <- safe_glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
-                               cinc_a + sidea_winning_coalition_size +
-                               t + cold_war,
-                             data = conflict_data)
+
+  h2_socialist <- safe_glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
+                             cinc_a + sidea_winning_coalition_size +
+                             t + cold_war,
+                           data = conflict_data)
+
   h2_nationalist <- safe_glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
                                cinc_a + sidea_winning_coalition_size +
                                t + cold_war,
                              data = conflict_data)
+
   list(
     h2_baseline    = h2_baseline,
     h2_controls    = h2_controls,
@@ -226,6 +252,7 @@ estimate_h2_logit <- function(data) {
 # ==============================================================================
 # 3. Execution and Saving Results ----
 # ==============================================================================
+
 h1_models <- estimate_h1_logit(h12_data)
 h2_models <- estimate_h2_logit(h12_data)
 
