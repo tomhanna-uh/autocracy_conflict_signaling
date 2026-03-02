@@ -1,257 +1,182 @@
 # ==============================================================================
-# 08_h8_moderation.R — Moderation Analysis for Hypothesis 8
-# H8: Moderation — Dynamic Leadership
-# Dynamic personal leadership qualities moderate (amplify) the effect of
-# revisionist ideology on conflict behavior (Messianic Autocrat test).
-# Tier 3: Mediation, Moderation, and Survival
+# 08_h8_moderation.R -- Moderation Analysis for Hypothesis 8
+# H8: Moderation -- Dynamic Leadership
 # Uses: glm (logit), lm (LPM with interaction), sjPlot, marginaleffects
-# Source: 2024 repo A1/A2/A3 (alternate hypotheses in
-#   major_and_alternative_hypotheses_robustness.qmd)
 # ==============================================================================
 
-# Load required scripts
 source("R/00_packages.R")
 source("R/02_data_prep.R")
 
 # ------------------------------------------------------------------------------
-# Variable note (dyadic data: dyad_ready):
-# Treatment (X):  legit_ratio (ideological legitimation share, from 02_data_prep.R)
-# Moderator (Z):  sidea_dynamic_leader (GRAVE-D dynamic leadership indicator)
-# Outcome 1 (Y1): mid_initiated  (conflict initiation)
-# Outcome 2 (Y2): targets_democracy (democracy targeting, conditional on initiation)
-# Controls:       log_cinc_a, log_cinc_b, sidea_winning_coalition_size,
-#                 cold_war, t, t2, t3
-# Model naming convention matches 2024 repo:
-#   alternate1full / alternate1int  -> H8 initiation (main effect / interaction)
-#   alternate2full / alternate2int  -> H8 targeting  (main effect / interaction)
-# In new repo these are renamed:
-#   h8_init_main, h8_init_int, h8_target_main, h8_target_int
-# Plus LPM versions for marginal effects interpretation:
-#   h8_init_lpm_int, h8_target_lpm_int
+# Memory: subset dyad_ready to needed columns
 # ------------------------------------------------------------------------------
+h8_vars <- c(
+  "mid_initiated", "targets_democracy",
+  "legit_ratio", "sidea_dynamic_leader",
+  "log_cinc_a", "log_cinc_b",
+  "sidea_winning_coalition_size", "sidea_military_support",
+  "cold_war", "t", "t2", "t3"
+)
+h8_vars <- intersect(h8_vars, names(dyad_ready))
+h8_data <- dyad_ready[, h8_vars, drop = FALSE]
+rm(dyad_ready, monadic_ready)
+gc()
+message(sprintf("[08] h8_data: %d rows x %d cols, %s",
+                nrow(h8_data), ncol(h8_data),
+                format(object.size(h8_data), units = "MB")))
+
+strip_glm <- function(model) {
+  if (is.null(model)) return(NULL)
+  model$model <- NULL; model$data <- NULL; model$y <- NULL
+  model$linear.predictors <- NULL; model$fitted.values <- NULL
+  model$residuals <- NULL; model$weights <- NULL
+  model$prior.weights <- NULL; model$effects <- NULL
+  if (!is.null(model$qr)) model$qr$qr <- NULL
+  attr(model$terms, ".Environment") <- globalenv()
+  model
+}
+
+safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs = 30) {
+  vars <- all.vars(formula)
+  for (v in vars) {
+    if (!v %in% names(data)) { warning(sprintf("[08] '%s' not found. Skipping.", v)); return(NULL) }
+    if (all(is.na(data[[v]]))) { warning(sprintf("[08] '%s' all NA. Skipping.", v)); return(NULL) }
+  }
+  if (sum(complete.cases(data[, vars, drop = FALSE])) < min_obs) {
+    warning("[08] Insufficient complete cases. Skipping."); return(NULL)
+  }
+  if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
+    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit),
+                    error = function(e) NULL)
+    if (!is.null(fit)) return(strip_glm(fit))
+  }
+  fit <- tryCatch(glm(formula, family = family, data = data, control = glm.control(maxit = 100)),
+                  error = function(e) { warning(sprintf("[08] glm failed: %s", e$message)); NULL })
+  strip_glm(fit)
+}
+
+safe_lm <- function(formula, data, min_obs = 30) {
+  vars <- all.vars(formula)
+  for (v in vars) {
+    if (!v %in% names(data)) { warning(sprintf("[08] '%s' not found. Skipping.", v)); return(NULL) }
+  }
+  if (sum(complete.cases(data[, vars, drop = FALSE])) < min_obs) {
+    warning("[08] Insufficient complete cases. Skipping."); return(NULL)
+  }
+  fit <- tryCatch(lm(formula, data = data),
+                  error = function(e) { warning(sprintf("[08] lm failed: %s", e$message)); NULL })
+  strip_glm(fit)  # works for lm too
+}
 
 # ==============================================================================
-# 1. H8 — Dynamic Leadership and Conflict Initiation ----
+# 1. H8 -- Dynamic Leadership and Conflict Initiation ----
 # ==============================================================================
-
-#' Estimate H8 Moderation Models for Conflict Initiation
-#'
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return Named list of glm/lm model objects
 estimate_h8_initiation <- function(data) {
-
-  # --- Main effects model: dynamic leader as additive control ---
-  # Tests whether dynamic leadership is independently associated with initiation
-  # beyond ideology (falsification: if ideology effect disappears, messianic wins)
-  h8_init_main <- glm(
+  h8_init_main <- safe_glm(
     mid_initiated ~ legit_ratio + sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    family = binomial(link = "logit"),
-    data = data
-  )
-
-  # --- Interaction model (logit): legit_ratio x sidea_dynamic_leader ---
-  # Key H8 test: does dynamic leadership amplify the ideology-initiation link?
-  h8_init_int <- glm(
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = data)
+  h8_init_int <- safe_glm(
     mid_initiated ~ legit_ratio * sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    family = binomial(link = "logit"),
-    data = data
-  )
-
-  # --- LPM interaction model: for marginal effects / predicted probability plots ---
-  # Linear probability model mirrors 2024 repo's alternate1int; easier marginal
-  # effect interpretation for interaction term visualizations.
-  h8_init_lpm_int <- lm(
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = data)
+  h8_init_lpm_int <- safe_lm(
     mid_initiated ~ legit_ratio * sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    data = data
-  )
-
-  return(list(
-    h8_init_main    = h8_init_main,
-    h8_init_int     = h8_init_int,
-    h8_init_lpm_int = h8_init_lpm_int
-  ))
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = data)
+  list(h8_init_main = h8_init_main, h8_init_int = h8_init_int,
+       h8_init_lpm_int = h8_init_lpm_int)
 }
 
 # ==============================================================================
-# 2. H8 — Dynamic Leadership and Democracy Targeting ----
+# 2. H8 -- Dynamic Leadership and Democracy Targeting ----
 # ==============================================================================
-
-#' Estimate H8 Moderation Models for Democracy Targeting
-#'
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return Named list of glm/lm model objects
 estimate_h8_targeting <- function(data) {
-
-  # Filter to MID initiators only (targeting conditioned on initiation)
   conflict_data <- data %>% filter(mid_initiated == 1)
-
-  # --- Main effects model ---
-  h8_target_main <- glm(
+  if (nrow(conflict_data) < 30) {
+    warning("[08] Too few conflict obs for targeting. Skipping.")
+    return(list(h8_target_main = NULL, h8_target_int = NULL, h8_target_lpm_int = NULL))
+  }
+  h8_target_main <- safe_glm(
     targets_democracy ~ legit_ratio + sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    family = binomial(link = "logit"),
-    data = conflict_data
-  )
-
-  # --- Interaction model (logit) ---
-  h8_target_int <- glm(
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = conflict_data)
+  h8_target_int <- safe_glm(
     targets_democracy ~ legit_ratio * sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    family = binomial(link = "logit"),
-    data = conflict_data
-  )
-
-  # --- LPM interaction model ---
-  h8_target_lpm_int <- lm(
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = conflict_data)
+  h8_target_lpm_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    data = conflict_data
-  )
-
-  return(list(
-    h8_target_main    = h8_target_main,
-    h8_target_int     = h8_target_int,
-    h8_target_lpm_int = h8_target_lpm_int
-  ))
+      log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
+      cold_war + t + t2 + t3, data = conflict_data)
+  list(h8_target_main = h8_target_main, h8_target_int = h8_target_int,
+       h8_target_lpm_int = h8_target_lpm_int)
 }
 
 # ==============================================================================
-# 3. Additional Interaction Robustness Models ----
-# (Mirrors 2024 repo interaction checks with coalition size and military support)
+# 3. Robustness Interaction Models ----
 # ==============================================================================
-
-#' Estimate H8 Robustness Interaction Models
-#'
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return Named list of lm robustness models
 estimate_h8_robustness <- function(data) {
-
   conflict_data <- data %>% filter(mid_initiated == 1)
-
-  # Winning coalition size x ideology interaction
-  h8_wcoal_int <- lm(
+  if (nrow(conflict_data) < 30) return(list(h8_wcoal_int = NULL, h8_milsupp_int = NULL, h8_coldwar_int = NULL))
+  h8_wcoal_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_winning_coalition_size +
-      sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b + cold_war +
-      t + t2 + t3,
-    data = conflict_data
-  )
-
-  # Military support x ideology interaction
-  h8_milsupp_int <- lm(
+      sidea_dynamic_leader + log_cinc_a + log_cinc_b + cold_war + t + t2 + t3,
+    data = conflict_data)
+  h8_milsupp_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_military_support +
-      sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war +
-      t + t2 + t3,
-    data = conflict_data
-  )
-
-  # Cold war x ideology interaction
-  h8_coldwar_int <- lm(
+      sidea_dynamic_leader + log_cinc_a + log_cinc_b +
+      sidea_winning_coalition_size + cold_war + t + t2 + t3,
+    data = conflict_data)
+  h8_coldwar_int <- safe_lm(
     targets_democracy ~ legit_ratio * cold_war +
-      sidea_dynamic_leader +
-      log_cinc_a + log_cinc_b +
+      sidea_dynamic_leader + log_cinc_a + log_cinc_b +
       sidea_winning_coalition_size + t + t2 + t3,
-    data = conflict_data
-  )
-
-  return(list(
-    h8_wcoal_int   = h8_wcoal_int,
-    h8_milsupp_int = h8_milsupp_int,
-    h8_coldwar_int = h8_coldwar_int
-  ))
+    data = conflict_data)
+  list(h8_wcoal_int = h8_wcoal_int, h8_milsupp_int = h8_milsupp_int,
+       h8_coldwar_int = h8_coldwar_int)
 }
 
 # ==============================================================================
 # 4. Predicted Probability Plots (sjPlot) ----
 # ==============================================================================
-
-#' Generate H8 Interaction Plots
-#'
-#' @param init_models List from estimate_h8_initiation()
-#' @param target_models List from estimate_h8_targeting()
-#' @return Saves plots to results/figures/ and returns list of ggplot objects
 plot_h8_interactions <- function(init_models, target_models) {
-
   dir.create("results/figures", recursive = TRUE, showWarnings = FALSE)
-
-  # Initiation: ideology effect by dynamic leadership level
-  p1 <- plot_model(
-    init_models$h8_init_lpm_int,
-    type  = "pred",
-    terms = c("legit_ratio", "sidea_dynamic_leader"),
-    title = "H8: Ideology x Dynamic Leadership — Conflict Initiation\n(LPM predicted probabilities)"
-  )
-
-  # Initiation: dynamic leader effect by ideology level
-  p2 <- plot_model(
-    init_models$h8_init_lpm_int,
-    type  = "pred",
-    terms = c("sidea_dynamic_leader", "legit_ratio"),
-    title = "H8: Dynamic Leadership x Ideology — Conflict Initiation\n(LPM predicted probabilities)"
-  )
-
-  # Targeting: ideology effect by dynamic leadership level
-  p3 <- plot_model(
-    target_models$h8_target_lpm_int,
-    type  = "pred",
-    terms = c("legit_ratio", "sidea_dynamic_leader"),
-    title = "H8: Ideology x Dynamic Leadership — Democracy Targeting\n(LPM predicted probabilities)"
-  )
-
-  # Targeting: dynamic leader effect by ideology level
-  p4 <- plot_model(
-    target_models$h8_target_lpm_int,
-    type  = "pred",
-    terms = c("sidea_dynamic_leader", "legit_ratio"),
-    title = "H8: Dynamic Leadership x Ideology — Democracy Targeting\n(LPM predicted probabilities)"
-  )
-
-  # Save plots
-  ggplot2::ggsave("results/figures/h8_init_ideology_by_dynleader.png",   p1, width = 8, height = 5)
-  ggplot2::ggsave("results/figures/h8_init_dynleader_by_ideology.png",   p2, width = 8, height = 5)
-  ggplot2::ggsave("results/figures/h8_target_ideology_by_dynleader.png", p3, width = 8, height = 5)
-  ggplot2::ggsave("results/figures/h8_target_dynleader_by_ideology.png", p4, width = 8, height = 5)
-
-  return(list(p1 = p1, p2 = p2, p3 = p3, p4 = p4))
+  plots <- list()
+  tryCatch({
+    plots$p1 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
+                           terms = c("legit_ratio", "sidea_dynamic_leader"),
+                           title = "H8: Ideology x Dynamic Leadership -- Initiation (LPM)")
+    plots$p2 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
+                           terms = c("sidea_dynamic_leader", "legit_ratio"),
+                           title = "H8: Dynamic Leadership x Ideology -- Initiation (LPM)")
+    plots$p3 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
+                           terms = c("legit_ratio", "sidea_dynamic_leader"),
+                           title = "H8: Ideology x Dynamic Leadership -- Targeting (LPM)")
+    plots$p4 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
+                           terms = c("sidea_dynamic_leader", "legit_ratio"),
+                           title = "H8: Dynamic Leadership x Ideology -- Targeting (LPM)")
+    if (!is.null(plots$p1)) ggplot2::ggsave("results/figures/h8_init_ideology_by_dynleader.png", plots$p1, width = 8, height = 5)
+    if (!is.null(plots$p2)) ggplot2::ggsave("results/figures/h8_init_dynleader_by_ideology.png", plots$p2, width = 8, height = 5)
+    if (!is.null(plots$p3)) ggplot2::ggsave("results/figures/h8_target_ideology_by_dynleader.png", plots$p3, width = 8, height = 5)
+    if (!is.null(plots$p4)) ggplot2::ggsave("results/figures/h8_target_dynleader_by_ideology.png", plots$p4, width = 8, height = 5)
+  }, error = function(e) warning(sprintf("[08] Plot generation failed: %s", e$message)))
+  plots
 }
 
 # ==============================================================================
 # 5. Execution and Saving Results ----
 # ==============================================================================
+h8_init   <- estimate_h8_initiation(h8_data)
+h8_target <- estimate_h8_targeting(h8_data)
+h8_robust <- estimate_h8_robustness(h8_data)
+h8_plots  <- plot_h8_interactions(h8_init, h8_target)
 
-# Initiation models
-h8_init    <- estimate_h8_initiation(dyad_ready)
-
-# Targeting models
-h8_target  <- estimate_h8_targeting(dyad_ready)
-
-# Robustness interaction models
-h8_robust  <- estimate_h8_robustness(dyad_ready)
-
-# Predicted probability plots
-h8_plots   <- plot_h8_interactions(h8_init, h8_target)
-
-# Save model objects for reporting
 dir.create("results", showWarnings = FALSE)
 saveRDS(h8_init,   "results/h8_init_models.rds")
 saveRDS(h8_target, "results/h8_target_models.rds")
 saveRDS(h8_robust, "results/h8_robust_models.rds")
 
-message("[08_h8_moderation.R] H8 moderation analysis complete. Models saved to results/")
+rm(h8_data, h8_vars, h8_init, h8_target, h8_robust, h8_plots)
+gc()
+message("[08_h8_moderation.R] Done. Models saved to results/")

@@ -31,6 +31,8 @@ load_pkg("pglm")        # Panel GLM
 load_pkg("plm")         # Panel linear models / Hausman tests
 load_pkg("sandwich")    # Robust SEs (HC, cluster)
 load_pkg("lmtest")      # coeftest() for clustered SEs
+load_pkg("brglm2")    # Firth penalized logit (handles separation)
+load_pkg("detectseparation") # detect_separation() diagnostic
 
 # -----------------------------------------------------------------------------
 # Estimation: Tier 2 - Hurdle models

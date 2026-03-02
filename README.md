@@ -1,9 +1,9 @@
 # Autocracy, Conflict, and Ideological Signaling
 
-**Author:** Tom Hanna  
-**ORCID:** 0000-0002-8054-0335  
-**Affiliation:** University of Houston, Department of Political Science  
-**License:** [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)  
+**Author:** Tom Hanna
+**ORCID:** 0000-0002-8054-0335
+**Affiliation:** University of Houston, Department of Political Science
+**License:** [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)
 **Copyright:** Tom Hanna, 2020–2025
 
 ---
@@ -114,7 +114,7 @@ Data files are **gitignored** and must be placed in `data/` before running any a
 | `v2exl_legitlead_a` | V-Dem | Personalist legitimation |
 | `v2exl_legitperf_a` | V-Dem | Performance legitimation |
 | `sidea_dynamic_leader` | GRAVE-D | Dynamic leadership (Messianic Autocrat proxy) |
-| `sidea_national_military_capabilities` | COW CINC | Capabilities control |
+| `cinc_a` | COW CINC | Capabilities control |
 | `sidea_winning_coalition_size` | V-Dem/BdM | Selectorate theory control |
 
 ---
