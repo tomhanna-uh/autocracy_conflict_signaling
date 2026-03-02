@@ -19,7 +19,6 @@ grave_d_path <- check_grave_d_path("GRAVE_D_Master_with_Leaders.csv")
 
 grave_d <- readr::read_csv(grave_d_path)
 
-
 # -----------------------------------------------------------------------------
 # Expected column sets
 # Used for validation; stops early with a clear error if columns are missing.
@@ -56,7 +55,6 @@ grave_d <- readr::read_csv(grave_d_path)
   "sidea_rural_worker_support",
   "sidea_ethnic_racial_support",
   "sidea_military_support",
-
   "sidea_nationalist_revisionist_domestic",
   "sidea_socialist_revisionist_domestic",
   "sidea_religious_revisionist_domestic",
@@ -68,6 +66,17 @@ grave_d <- readr::read_csv(grave_d_path)
 
   # Selectorate theory
   "sidea_winning_coalition_size",
+
+  # Survival / leader variables (H9)
+  "tenure",
+  "entry",
+  "irregulartransition",
+  "posttenurefate",
+
+  # Economic / population controls
+  "flgdpen",
+  "tpop",
+  "epop_a",
 
   # Derived variables from 05_build_master.R
   "mid_initiated",
@@ -81,7 +90,6 @@ grave_d <- readr::read_csv(grave_d_path)
 # -----------------------------------------------------------------------------
 # Internal helper: column validation
 # -----------------------------------------------------------------------------
-
 .check_cols <- function(data, required, label) {
   missing <- setdiff(required, names(data))
   if (length(missing) > 0) {
@@ -102,20 +110,19 @@ grave_d <- readr::read_csv(grave_d_path)
 # Loads the master dyadic dataset from grave_d_data2026.
 #
 # Arguments:
-#   filepath   -- path to CSV; defaults to the grave_d_data2026 ready_data export
-#   year_min   -- earliest year to retain (default 1946)
-#   autoc_max  -- V-Dem liberal democracy ceiling for Side A autocracy filter
-#                 (default 0.5; rows where v2x_libdem_a >= autoc_max are dropped)
+#   filepath  -- path to CSV; defaults to the grave_d_data2026 ready_data export
+#   year_min  -- earliest year to retain (default 1946)
+#   autoc_max -- V-Dem liberal democracy ceiling for Side A autocracy filter
+#                (default 0.5; rows where v2x_libdem_a >= autoc_max are dropped)
 #   warn_grave -- if TRUE (default), warns when GRAVE-D columns are absent
 #                 (needed for H3/H4/H7/H8 but may not be in all data versions)
 #
 # Returns: tibble, filtered and lightly validated
 # -----------------------------------------------------------------------------
-
 load_dyad_data <- function(
-    filepath  = grave_d_path,
-    year_min  = 1946L,
-    autoc_max = 0.5,
+    filepath   = grave_d_path,
+    year_min   = 1946L,
+    autoc_max  = 0.5,
     warn_grave = TRUE
 ) {
   if (!file.exists(filepath)) {
@@ -149,7 +156,6 @@ load_dyad_data <- function(
     min(out$year, na.rm = TRUE),
     max(out$year, na.rm = TRUE)
   ))
-
   out
 }
 
