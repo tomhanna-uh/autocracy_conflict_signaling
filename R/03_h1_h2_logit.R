@@ -67,7 +67,6 @@ strip_glm <- function(model) {
   model$weights        <- NULL
   model$prior.weights  <- NULL
   model$effects        <- NULL
-  model$qr$qr          <- NULL
   attr(model$terms, ".Environment") <- globalenv()
   model
 }
