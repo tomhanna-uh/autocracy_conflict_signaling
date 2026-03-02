@@ -16,74 +16,100 @@ source("R/02_data_prep.R")
 # sidea_revisionist_domestic = composite leader ideology score (GRAVE-D)
 #   sub-types: sidea_nationalist/socialist/religious/reactionary/separatist
 #              _revisionist_domestic
-# mid_initiated   = binary: hostility level >= 2 (DV for H1)
+# mid_initiated  = binary: hostility level >= 2 (DV for H1)
 # targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H2)
 # cinc_a = COW CINC (capabilities control)
 # sidea_winning_coalition_size = V-Dem/BdM selectorate control
-# v2x_libdem_b    = V-Dem liberal democracy score of Side B
+# v2x_libdem_b = V-Dem liberal democracy score of Side B
 # All variables constructed in 02_data_prep.R
 # ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Helper: safely fit a glm, returning NULL with a warning if the column
+# is entirely NA or has insufficient non-NA observations.
+# ------------------------------------------------------------------------------
+safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs = 30) {
+  # Extract variable names from the formula
+  vars <- all.vars(formula)
+  # Check that all variables exist and have non-NA data
+  for (v in vars) {
+    if (!v %in% names(data)) {
+      warning(sprintf("[03] Variable '%s' not found in data. Skipping model.", v))
+      return(NULL)
+    }
+    non_na <- sum(!is.na(data[[v]]))
+    if (non_na == 0) {
+      warning(sprintf("[03] Variable '%s' is entirely NA. Skipping model.", v))
+      return(NULL)
+    }
+  }
+  # Check complete cases for the model
+  complete <- complete.cases(data[, vars, drop = FALSE])
+  if (sum(complete) < min_obs) {
+    warning(sprintf(
+      "[03] Only %d complete cases for model (need >= %d). Skipping.",
+      sum(complete), min_obs
+    ))
+    return(NULL)
+  }
+  glm(formula, family = family, data = data)
+}
 
 # ==============================================================================
 # 1. Hypothesis 1: The Ideological Autocrat -- Initiation ----
 # H1: Autocratic states with higher levels of revisionist domestic leadership
 #     ideology will be more likely to originate a revisionist MID than other
 #     autocratic states, all else equal.
-# DV:  mid_initiated
-# IV:  sidea_revisionist_domestic (composite)
+# DV: mid_initiated
+# IV: sidea_revisionist_domestic (composite)
 # ==============================================================================
 
 #' Estimate H1 Logit Models (Leader Ideology -> MID Initiation)
 #' @param data Prepared dyadic data (dyad_ready)
 #' @return A named list of GLM objects: h1_baseline, h1_controls, h1_full,
-#'     h1_religious, h1_socialist, h1_nationalist
+#'         h1_religious, h1_socialist, h1_nationalist
 estimate_h1_logit <- function(data) {
 
   # h1_baseline: Leader ideology only
-  h1_baseline <- glm(mid_initiated ~ sidea_revisionist_domestic,
-                     family = binomial(link = "logit"),
-                     data = data)
+  h1_baseline <- safe_glm(mid_initiated ~ sidea_revisionist_domestic,
+                           data = data)
 
   # h1_controls: Add capabilities and selectorate controls
-  h1_controls <- glm(mid_initiated ~ sidea_revisionist_domestic +
-                       cinc_a +
-                       sidea_winning_coalition_size,
-                     family = binomial(link = "logit"),
-                     data = data)
+  h1_controls <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
+                             cinc_a +
+                             sidea_winning_coalition_size,
+                           data = data)
 
   # h1_full: Add target regime type + temporal controls
-  h1_full <- glm(mid_initiated ~ sidea_revisionist_domestic +
-                   targets_democracy +
-                   cinc_a +
-                   sidea_winning_coalition_size +
-                   t + t2 + t3 + cold_war,
-                 family = binomial(link = "logit"),
-                 data = data)
+  h1_full <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
+                         targets_democracy +
+                         cinc_a +
+                         sidea_winning_coalition_size +
+                         t + t2 + t3 + cold_war,
+                       data = data)
 
   # Sub-hypothesis models by ideology type
-  h1_religious <- glm(mid_initiated ~ sidea_religious_revisionist_domestic +
-                        targets_democracy +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + t2 + t3 + cold_war,
-                      family = binomial(link = "logit"),
-                      data = data)
+  # These may be NULL if the sub-type columns are not yet populated
+  h1_religious <- safe_glm(mid_initiated ~ sidea_religious_revisionist_domestic +
+                              targets_democracy +
+                              cinc_a +
+                              sidea_winning_coalition_size +
+                              t + t2 + t3 + cold_war,
+                            data = data)
 
-  h1_socialist <- glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
-                        targets_democracy +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + t2 + t3 + cold_war,
-                      family = binomial(link = "logit"),
-                      data = data)
+  h1_socialist <- safe_glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
+                              targets_democracy +
+                              cinc_a +
+                              sidea_winning_coalition_size +
+                              t + t2 + t3 + cold_war,
+                            data = data)
 
-  h1_nationalist <- glm(mid_initiated ~ sidea_nationalist_revisionist_domestic +
-                          targets_democracy +
-                          cinc_a +
-                          sidea_winning_coalition_size +
-                          t + t2 + t3 + cold_war,
-                        family = binomial(link = "logit"),
-                        data = data)
+  h1_nationalist <- safe_glm(mid_initiated ~ sidea_nationalist_revisionist_domestic +
+                                targets_democracy +
+                                cinc_a +
+                                sidea_winning_coalition_size +
+                                t + t2 + t3 + cold_war,
+                              data = data)
 
   return(list(
     h1_baseline    = h1_baseline,
@@ -100,60 +126,62 @@ estimate_h1_logit <- function(data) {
 # H2: Autocratic states with higher levels of revisionist domestic leadership
 #     ideology will be more likely to originate revisionist MIDs targeting
 #     democracies than other autocratic states, all else equal.
-# DV:  targets_democracy (conditional on mid_initiated == 1)
-# IV:  sidea_revisionist_domestic (composite)
+# DV: targets_democracy (conditional on mid_initiated == 1)
+# IV: sidea_revisionist_domestic (composite)
 # ==============================================================================
 
 #' Estimate H2 Logit Models (Leader Ideology -> Democracy Targeting)
 #' @param data Prepared dyadic data (dyad_ready)
 #' @return A named list of GLM objects: h2_baseline, h2_controls, h2_full,
-#'     h2_religious, h2_socialist, h2_nationalist
+#'         h2_religious, h2_socialist, h2_nationalist
 estimate_h2_logit <- function(data) {
 
   # Filter to conflict initiations only
   conflict_data <- data %>% filter(mid_initiated == 1)
 
+  if (nrow(conflict_data) == 0) {
+    warning("[03] No conflict initiations found (mid_initiated == 1). H2 models skipped.")
+    return(list(
+      h2_baseline = NULL, h2_controls = NULL, h2_full = NULL,
+      h2_religious = NULL, h2_socialist = NULL, h2_nationalist = NULL
+    ))
+  }
+
   # h2_baseline: Leader ideology only
-  h2_baseline <- glm(targets_democracy ~ sidea_revisionist_domestic,
-                     family = binomial(link = "logit"),
-                     data = conflict_data)
+  h2_baseline <- safe_glm(targets_democracy ~ sidea_revisionist_domestic,
+                           data = conflict_data)
 
   # h2_controls: Add capabilities and selectorate
-  h2_controls <- glm(targets_democracy ~ sidea_revisionist_domestic +
-                       cinc_a +
-                       sidea_winning_coalition_size,
-                     family = binomial(link = "logit"),
-                     data = conflict_data)
+  h2_controls <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
+                             cinc_a +
+                             sidea_winning_coalition_size,
+                           data = conflict_data)
 
   # h2_full: Add temporal controls
-  h2_full <- glm(targets_democracy ~ sidea_revisionist_domestic +
-                   cinc_a +
-                   sidea_winning_coalition_size +
-                   t + cold_war,
-                 family = binomial(link = "logit"),
-                 data = conflict_data)
+  h2_full <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
+                         cinc_a +
+                         sidea_winning_coalition_size +
+                         t + cold_war,
+                       data = conflict_data)
 
   # Sub-hypothesis models by ideology type
-  h2_religious <- glm(targets_democracy ~ sidea_religious_revisionist_domestic +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + cold_war,
-                      family = binomial(link = "logit"),
-                      data = conflict_data)
+  h2_religious <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
+                              cinc_a +
+                              sidea_winning_coalition_size +
+                              t + cold_war,
+                            data = conflict_data)
 
-  h2_socialist <- glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + cold_war,
-                      family = binomial(link = "logit"),
-                      data = conflict_data)
+  h2_socialist <- safe_glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
+                              cinc_a +
+                              sidea_winning_coalition_size +
+                              t + cold_war,
+                            data = conflict_data)
 
-  h2_nationalist <- glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
-                          cinc_a +
-                          sidea_winning_coalition_size +
-                          t + cold_war,
-                        family = binomial(link = "logit"),
-                        data = conflict_data)
+  h2_nationalist <- safe_glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
+                                cinc_a +
+                                sidea_winning_coalition_size +
+                                t + cold_war,
+                              data = conflict_data)
 
   return(list(
     h2_baseline    = h2_baseline,
@@ -174,6 +202,16 @@ h1_models <- estimate_h1_logit(dyad_ready)
 
 # Run H2 models
 h2_models <- estimate_h2_logit(dyad_ready)
+
+# Report which models succeeded
+for (nm in names(h1_models)) {
+  status <- if (!is.null(h1_models[[nm]])) "OK" else "SKIPPED (insufficient data)"
+  message(sprintf("  H1 %-15s : %s", nm, status))
+}
+for (nm in names(h2_models)) {
+  status <- if (!is.null(h2_models[[nm]])) "OK" else "SKIPPED (insufficient data)"
+  message(sprintf("  H2 %-15s : %s", nm, status))
+}
 
 # Save results for reporting scripts
 dir.create("results", showWarnings = FALSE)
