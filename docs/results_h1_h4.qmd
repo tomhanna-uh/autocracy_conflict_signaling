@@ -11,37 +11,26 @@ h1_models <- readRDS(here::here("results", "h1_logit_models.rds"))
 h2_models <- readRDS(here::here("results", "h2_logit_models.rds"))
 h3_models <- readRDS(here::here("results", "h3_logit_models.rds"))
 h4_models <- readRDS(here::here("results", "h4_logit_models.rds"))
-h4_unfiltered <- readRDS(here::here("results", "h4_unfiltered_logit_models.rds"))
 ```
 
 This chapter presents results for Tier 1 hypotheses, which use standard logistic regression to estimate the relationship between leadership ideology, support group composition, and conflict behavior (initiation and target selection). All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
 
 ## H1: Leadership Ideology and Conflict Initiation
 
-**H1** predicts that autocratic states with higher revisionist domestic leadership ideology will be more likely to initiate MIDs. The dependent variable is `mid_initiated` (hihosta $\geq$ 2). Five sequentially specified logit models are estimated (@tbl-h1).
+**H1** predicts that autocratic states with higher revisionist domestic leadership ideology will be more likely to initiate MIDs. The dependent variable is `mid_initiated` (hihosta $\geq$ 2).
 
 ```{r}
 #| label: tbl-h1
 #| tbl-cap: "H1: Revisionist Leadership Ideology and Conflict Initiation"
 #| results: asis
-
 stargazer(
-  h1_models$h1_ideology_only,
-  h1_models$h1_regime_type,
-  h1_models$h1_capabilities,
-  h1_models$h1_peace_years,
+  h1_models$h1_baseline,
+  h1_models$h1_controls,
   h1_models$h1_full,
   type = "html",
   title = "H1: Revisionist Leadership Ideology and Conflict Initiation",
   dep.var.labels = "MID Initiated",
-  column.labels = c("(1) Baseline", "(2) +Regime", "(3) +CINC",
-                    "(4) +PeaceYrs", "(5) Full"),
-  covariate.labels = c(
-    "Revisionist Ideology", "Autocracy Level",
-    "Log CINC (A)", "Log CINC (B)", "Winning Coalition",
-    "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
-    "Peace Years (t\\textsuperscript{3})", "Cold War"
-  ),
+  column.labels = c("(1) Baseline", "(2) +Controls", "(3) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll"),
   notes = c("Sample: Autocratic dyad-years, 1946\u20132010.",
@@ -49,72 +38,41 @@ stargazer(
 )
 ```
 
+### Ideology Sub-type Models
+
 ```{r}
-#| label: fig-h1-pred
-#| fig-cap: "H1: Predicted probability of MID initiation by revisionist ideology (full model)"
-
-# Predicted probability plot from full H1 model
-pred_h1 <- data.frame(
-  sidea_revisionist_domestic = seq(
-    quantile(dyad_ready$sidea_revisionist_domestic, 0.05, na.rm = TRUE),
-    quantile(dyad_ready$sidea_revisionist_domestic, 0.95, na.rm = TRUE),
-    length.out = 100
-  )
-) %>%
-  mutate(
-    log_cinc_a = mean(dyad_ready$log_cinc_a, na.rm = TRUE),
-    log_cinc_b = mean(dyad_ready$log_cinc_b, na.rm = TRUE),
-    sidea_winning_coalition_size = mean(dyad_ready$sidea_winning_coalition_size, na.rm = TRUE),
-    cold_war = 0, t = 0, t2 = 0, t3 = 0
-  )
-
-pred_h1 <- pred_h1 %>%
-  bind_cols(
-    predict(h1_models$h1_full, newdata = pred_h1,
-            type = "link", se.fit = TRUE) %>%
-      as.data.frame() %>%
-      transmute(
-        fit = plogis(fit),
-        lower = plogis(fit - 1.96 * se.fit),
-        upper = plogis(fit + 1.96 * se.fit)
-      )
-  )
-
-ggplot(pred_h1, aes(x = sidea_revisionist_domestic, y = fit)) +
-  geom_line(color = "#D55E00", linewidth = 1.2) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#D55E00") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
-  labs(
-    x = "Revisionist Leadership Ideology (GRAVE-D)",
-    y = "Predicted Probability of MID Initiation",
-    subtitle = "Other variables held at means; Cold War = 0"
-  )
+#| label: tbl-h1-subtypes
+#| tbl-cap: "H1: Ideology Sub-types and Conflict Initiation"
+#| results: asis
+stargazer(
+  h1_models$h1_religious,
+  h1_models$h1_socialist,
+  h1_models$h1_nationalist,
+  type = "html",
+  title = "H1: Ideology Sub-types and Conflict Initiation",
+  dep.var.labels = "MID Initiated",
+  column.labels = c("Religious", "Socialist", "Nationalist"),
+  star.cutoffs = c(0.05, 0.01, 0.001),
+  omit.stat = c("aic", "ll")
+)
 ```
 
 ## H2: Leadership Ideology and Democracy Targeting
 
-**H2** predicts that among conflict initiators, states with higher revisionist ideology preferentially target democracies. The sample is restricted to `mid_initiated == 1` rows; the dependent variable is `targets_democracy` (@tbl-h2).
+**H2** predicts that among conflict initiators, states with higher revisionist ideology preferentially target democracies. The sample is restricted to `mid_initiated == 1` rows.
 
 ```{r}
 #| label: tbl-h2
 #| tbl-cap: "H2: Revisionist Leadership Ideology and Democracy Targeting (Initiators Only)"
 #| results: asis
-
 stargazer(
-  h2_models$h2_ideology_only,
-  h2_models$h2_capabilities,
-  h2_models$h2_peace_years,
+  h2_models$h2_baseline,
+  h2_models$h2_controls,
   h2_models$h2_full,
   type = "html",
   title = "H2: Leadership Ideology and Democracy Targeting",
   dep.var.labels = "Target is Democracy",
-  column.labels = c("(1) Baseline", "(2) +CINC", "(3) +PeaceYrs", "(4) Full"),
-  covariate.labels = c(
-    "Revisionist Ideology",
-    "Log CINC (A)", "Log CINC (B)", "Winning Coalition",
-    "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
-    "Peace Years (t\\textsuperscript{3})", "Cold War"
-  ),
+  column.labels = c("(1) Baseline", "(2) +Controls", "(3) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll"),
   notes = c("Sample: Autocratic MID initiators only.",
@@ -124,24 +82,24 @@ stargazer(
 
 ## H3: Support Group Ideology and Conflict Initiation
 
-**H3** tests the Rational Autocrat prediction that regime dependence on ideologically revisionist support groups drives conflict initiation. The key IVs are the GRAVE-D support group variables (@tbl-h3).
+**H3** tests the Rational Autocrat prediction that regime dependence on ideologically revisionist support groups drives conflict initiation.
 
 ```{r}
 #| label: tbl-h3
 #| tbl-cap: "H3: Support Group Ideology and Conflict Initiation"
 #| results: asis
-
 stargazer(
-  h3_models$h3_ideology_only,
-  h3_models$h3_capabilities,
-  h3_models$h3_peace_years,
+  h3_models$h3_baseline,
+  h3_models$h3_party,
+  h3_models$h3_military,
+  h3_models$h3_multi,
+  h3_models$h3_controls,
   h3_models$h3_full,
-  h3_models$h3_legit_components,
-  h3_models$h3_ideology_gap,
   type = "html",
   title = "H3: Support Group Ideology and Conflict Initiation",
   dep.var.labels = "MID Initiated",
-  column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"),
+  column.labels = c("(1) Religious", "(2) Party", "(3) Military",
+                    "(4) Multi", "(5) +Controls", "(6) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
 )
@@ -149,40 +107,24 @@ stargazer(
 
 ## H4: Support Group Ideology and Democracy Targeting
 
-**H4** tests whether support group ideology shapes target selection. Results are reported for both the filtered sample (initiators only) and the unfiltered full dataset (@tbl-h4-filtered, @tbl-h4-unfiltered).
+**H4** tests whether support group ideology shapes target selection among conflict initiators.
 
 ```{r}
-#| label: tbl-h4-filtered
+#| label: tbl-h4
 #| tbl-cap: "H4: Support Group Ideology and Democracy Targeting (Initiators Only)"
 #| results: asis
-
 stargazer(
-  h4_models$h4_ideology_only,
-  h4_models$h4_capabilities,
+  h4_models$h4_baseline,
+  h4_models$h4_party,
+  h4_models$h4_military,
+  h4_models$h4_multi,
+  h4_models$h4_controls,
   h4_models$h4_full,
-  h4_models$h4_legit_components,
-  h4_models$h4_ideology_gap,
-  h4_models$h4_interaction,
   type = "html",
   title = "H4: Democracy Targeting (Initiators Only)",
   dep.var.labels = "Target is Democracy",
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll")
-)
-```
-
-```{r}
-#| label: tbl-h4-unfiltered
-#| tbl-cap: "H4 Robustness: Support Group Ideology and Democracy Targeting (Full Sample)"
-#| results: asis
-
-stargazer(
-  h4_unfiltered$h4u_ideology_only,
-  h4_unfiltered$h4u_full,
-  h4_unfiltered$h4u_interaction,
-  type = "html",
-  title = "H4 Robustness: Full Sample (Unfiltered)",
-  dep.var.labels = "Conflict vs Democracy",
+  column.labels = c("(1) Religious", "(2) Party", "(3) Military",
+                    "(4) Multi", "(5) +Controls", "(6) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
 )
@@ -195,21 +137,12 @@ stargazer(
 ```{r}
 #| label: tbl-tier1-summary
 #| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1\u2013H4 Full Models)"
-
 modelsummary(
   list(
     "H1: Initiation" = h1_models$h1_full,
     "H2: Targeting" = h2_models$h2_full,
     "H3: Initiation" = h3_models$h3_full,
     "H4: Targeting" = h4_models$h4_full
-  ),
-  coef_map = c(
-    sidea_revisionist_domestic = "Revisionist Ideology",
-    legit_ratio                = "Legitimation Ratio",
-    log_cinc_a                 = "Log CINC (A)",
-    log_cinc_b                 = "Log CINC (B)",
-    sidea_winning_coalition_size = "Winning Coalition",
-    cold_war                   = "Cold War"
   ),
   stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
   gof_omit = "AIC|BIC|Log"
