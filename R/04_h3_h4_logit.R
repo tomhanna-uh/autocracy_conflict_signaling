@@ -14,12 +14,12 @@ source("R/02_data_prep.R")
 # ------------------------------------------------------------------------------
 # Variable note:
 # Support group IVs (GRAVE-D):
-#   sidea_religious_support       = religious group regime support
-#   sidea_party_elite_support     = party elite regime support
-#   sidea_rural_worker_support    = rural/worker group regime support
-#   sidea_military_support        = military regime support
-#   sidea_ethnic_racial_support   = ethnic/racial group regime support
-# mid_initiated  = binary: hostility level >= 2 (DV for H3)
+#   sidea_religious_support    = religious group regime support
+#   sidea_party_elite_support  = party elite regime support
+#   sidea_rural_worker_support = rural/worker group regime support
+#   sidea_military_support     = military regime support
+#   sidea_ethnic_racial_support = ethnic/racial group regime support
+# mid_initiated = binary: hostility level >= 2 (DV for H3)
 # targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H4)
 # cinc_a = COW CINC (capabilities control)
 # sidea_winning_coalition_size = V-Dem/BdM selectorate control
@@ -50,16 +50,16 @@ message(sprintf("[04] h34_data: %d rows x %d cols, %s",
 # ------------------------------------------------------------------------------
 strip_glm <- function(model) {
   if (is.null(model)) return(NULL)
-  model$model          <- NULL
-  model$data           <- NULL
-  model$y              <- NULL
+  model$model <- NULL
+  model$data  <- NULL
+  model$y     <- NULL
   model$linear.predictors <- NULL
-  model$fitted.values  <- NULL
-  model$residuals      <- NULL
-  model$weights        <- NULL
-  model$prior.weights  <- NULL
-  model$effects        <- NULL
-  model$qr$qr          <- NULL
+  model$fitted.values     <- NULL
+  model$residuals         <- NULL
+  model$weights           <- NULL
+  model$prior.weights     <- NULL
+  model$effects           <- NULL
+  model$qr$qr             <- NULL
   attr(model$terms, ".Environment") <- globalenv()
   model
 }
@@ -85,10 +85,14 @@ safe_glm <- function(formula, data, min_obs = 30) {
   if (requireNamespace("brglm2", quietly = TRUE)) {
     fit <- tryCatch(
       glm(formula, family = binomial(link = "logit"), data = data,
-          method = brglm2::brglmFit),
+          method = brglm2::brglmFit,
+          control = list(maxit = 300, epsilon = 1e-6)),
       error = function(e) { warning(sprintf("[04] brglm2 failed: %s", e$message)); NULL }
     )
-    if (!is.null(fit)) return(strip_glm(fit))
+    if (!is.null(fit)) {
+      message(sprintf("[04] Firth logit: %d obs, converged = %s", n_complete, fit$converged))
+      return(strip_glm(fit))
+    }
   }
   fit <- tryCatch(
     glm(formula, family = binomial(link = "logit"), data = data,
@@ -106,25 +110,29 @@ estimate_h3_logit <- function(data) {
   h3_baseline <- safe_glm(mid_initiated ~ sidea_religious_support, data = data)
   h3_party    <- safe_glm(mid_initiated ~ sidea_party_elite_support, data = data)
   h3_military <- safe_glm(mid_initiated ~ sidea_military_support, data = data)
-  h3_multi    <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support, data = data)
+
+  h3_multi <- safe_glm(mid_initiated ~ sidea_religious_support +
+                          sidea_party_elite_support +
+                          sidea_rural_worker_support +
+                          sidea_military_support +
+                          sidea_ethnic_racial_support, data = data)
+
   h3_controls <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a + sidea_winning_coalition_size, data = data)
-  h3_full     <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            targets_democracy + cinc_a +
-                            sidea_winning_coalition_size +
-                            t + t2 + t3 + cold_war, data = data)
+                             sidea_party_elite_support +
+                             sidea_rural_worker_support +
+                             sidea_military_support +
+                             sidea_ethnic_racial_support +
+                             cinc_a + sidea_winning_coalition_size, data = data)
+
+  h3_full <- safe_glm(mid_initiated ~ sidea_religious_support +
+                        sidea_party_elite_support +
+                        sidea_rural_worker_support +
+                        sidea_military_support +
+                        sidea_ethnic_racial_support +
+                        targets_democracy + cinc_a +
+                        sidea_winning_coalition_size +
+                        t + t2 + t3 + cold_war, data = data)
+
   list(h3_baseline = h3_baseline, h3_party = h3_party,
        h3_military = h3_military, h3_multi = h3_multi,
        h3_controls = h3_controls, h3_full = h3_full)
@@ -140,27 +148,32 @@ estimate_h4_logit <- function(data) {
     return(list(h4_baseline = NULL, h4_party = NULL, h4_military = NULL,
                 h4_multi = NULL, h4_controls = NULL, h4_full = NULL))
   }
+
   h4_baseline <- safe_glm(targets_democracy ~ sidea_religious_support, data = conflict_data)
   h4_party    <- safe_glm(targets_democracy ~ sidea_party_elite_support, data = conflict_data)
   h4_military <- safe_glm(targets_democracy ~ sidea_military_support, data = conflict_data)
-  h4_multi    <- safe_glm(targets_democracy ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support, data = conflict_data)
+
+  h4_multi <- safe_glm(targets_democracy ~ sidea_religious_support +
+                          sidea_party_elite_support +
+                          sidea_rural_worker_support +
+                          sidea_military_support +
+                          sidea_ethnic_racial_support, data = conflict_data)
+
   h4_controls <- safe_glm(targets_democracy ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a + sidea_winning_coalition_size, data = conflict_data)
-  h4_full     <- safe_glm(targets_democracy ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a + sidea_winning_coalition_size +
-                            t + cold_war, data = conflict_data)
+                             sidea_party_elite_support +
+                             sidea_rural_worker_support +
+                             sidea_military_support +
+                             sidea_ethnic_racial_support +
+                             cinc_a + sidea_winning_coalition_size, data = conflict_data)
+
+  h4_full <- safe_glm(targets_democracy ~ sidea_religious_support +
+                        sidea_party_elite_support +
+                        sidea_rural_worker_support +
+                        sidea_military_support +
+                        sidea_ethnic_racial_support +
+                        cinc_a + sidea_winning_coalition_size +
+                        t + cold_war, data = conflict_data)
+
   list(h4_baseline = h4_baseline, h4_party = h4_party,
        h4_military = h4_military, h4_multi = h4_multi,
        h4_controls = h4_controls, h4_full = h4_full)
