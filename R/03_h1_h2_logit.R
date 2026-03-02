@@ -43,7 +43,7 @@ h12_vars <- c(
 # Keep only columns that actually exist (sub-types may be absent)
 h12_vars <- intersect(h12_vars, names(dyad_ready))
 h12_data <- dyad_ready[, h12_vars, drop = FALSE]
-rm(dyad_ready, monadic_ready)  # free the large frames
+  # NOTE: dyad_ready/monadic_ready kept in memory for pipeline efficiency
 gc()
 
 message(sprintf("[03] h12_data: %d rows x %d cols, %s",
