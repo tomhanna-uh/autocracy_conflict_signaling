@@ -113,3 +113,12 @@ saveRDS(dyad_ready,   "ready_data/dyad_ready.rds")
 saveRDS(monadic_ready, "ready_data/monadic_ready.rds")
 
 message("Data preparation complete. Ready files saved to ready_data/")
+
+# 5. Memory Cleanup ----
+# Remove intermediate objects that downstream scripts don't need.
+# Only dyad_ready and monadic_ready should persist.
+rm(dyad_df, prep_dyad, prep_monadic)
+gc()
+message(sprintf("[02] Cleanup done. dyad_ready: %s, monadic_ready: %s",
+                format(object.size(dyad_ready),  units = "MB"),
+                format(object.size(monadic_ready), units = "MB")))
