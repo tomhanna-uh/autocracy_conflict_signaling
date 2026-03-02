@@ -54,6 +54,11 @@ run_step("R/04_h3_h4_logit.R", "04_h3_h4_logit.R — H3 & H4: support groups")
 # ==============================================================================
 run_step("R/05_h5_h6_legitmix.R", "05_h5_h6_legitmix.R — H5 & H6: legitimation mix")
 
+
+# ==============================================================================
+# STAGE 4b — M1/M2 Mediation and Survival Models
+# ==============================================================================
+run_step("R/05_m1_m2_mediation.R", "05_m1_m2_mediation.R — M1 & M2: mediation and survival")
 # ==============================================================================
 # STAGE 5 — Tier 3 Models: Mediation, Moderation, Survival (H7–H9)
 # Note: 06_h9_survival.R runs before 07 and 08 so the Cox models are
