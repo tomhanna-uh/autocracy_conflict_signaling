@@ -49,7 +49,9 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs =
     warning("[05] Insufficient complete cases. Skipping."); return(NULL)
   }
   if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
-    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit),
+    fit <- tryCatch(glm(formula, family = family, data = data,
+                        method = brglm2::brglmFit,
+                        control = list(maxit = 300, epsilon = 1e-6)),
                     error = function(e) NULL)
     if (!is.null(fit)) return(strip_glm(fit))
   }
@@ -66,8 +68,8 @@ estimate_h5_logit <- function(data) {
   h5_components <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a, data = data)
   h5_controls   <- safe_glm(mid_initiated ~ legit_ratio + cinc_a + sidea_winning_coalition_size, data = data)
   h5_full       <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                              targets_democracy + cinc_a + sidea_winning_coalition_size +
-                              t + t2 + t3 + cold_war, data = data)
+                               targets_democracy + cinc_a + sidea_winning_coalition_size +
+                               t + t2 + t3 + cold_war, data = data)
   list(h5_baseline = h5_baseline, h5_components = h5_components,
        h5_controls = h5_controls, h5_full = h5_full)
 }
@@ -99,11 +101,11 @@ estimate_h6_logit <- function(data) {
   h6_controls    <- safe_glm(targets_democracy ~ legit_ratio + cinc_a + sidea_winning_coalition_size,
                               data = conflict_data)
   h6_full        <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                                cinc_a + sidea_winning_coalition_size + t + cold_war,
-                              data = conflict_data)
+                               cinc_a + sidea_winning_coalition_size + t + cold_war,
+                             data = conflict_data)
   h6_interaction <- safe_glm(targets_democracy ~ legit_ratio * sidea_revisionist_domestic +
-                                cinc_a + sidea_winning_coalition_size + t + cold_war,
-                              data = conflict_data)
+                               cinc_a + sidea_winning_coalition_size + t + cold_war,
+                             data = conflict_data)
   list(h6_baseline = h6_baseline, h6_components = h6_components,
        h6_controls = h6_controls, h6_full = h6_full, h6_interaction = h6_interaction)
 }
