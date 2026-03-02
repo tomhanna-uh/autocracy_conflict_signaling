@@ -1,186 +1,125 @@
 # ==============================================================================
-# 05_h5_h6_legitmix.R — Legitimation Mix Analysis for Hypotheses 5 and 6
-# H5: Legitimation Mix — Initiation
-#    Relative ideological legitimation dependence → conflict initiation
-# H6: Legitimation Mix — Targeting
-#    Relative ideological legitimation dependence → democracy targeting
+# 05_h5_h6_legitmix.R -- Legitimation Mix Analysis for Hypotheses 5 and 6
+# H5: Legitimation Mix -- Initiation
+# H6: Legitimation Mix -- Targeting
 # Tier 2: Logistic + Hurdle Models
 # ==============================================================================
 
-# Load required scripts
 source("R/00_packages.R")
 source("R/02_data_prep.R")
 
 # ------------------------------------------------------------------------------
-# Variable note:
-# v2exl_legitideol_a = V-Dem ideological legitimation score (Side A)
-# v2exl_legitlead_a  = V-Dem personalist legitimation score (Side A)
-# v2exl_legitperf_a  = V-Dem performance legitimation score (Side A)
-# legit_ratio        = v2exl_legitideol_a / legit_total (from 02_data_prep.R)
-# legit_total        = sum of all three legitimation components
-# mid_initiated   = binary: hostility level >= 2 (DV for H5)
-# targets_democracy = binary: v2x_libdem_b >= 0.5 (DV for H6)
-# All variables constructed in 02_data_prep.R
+# Memory: subset to needed columns
 # ------------------------------------------------------------------------------
+h56_vars <- c(
+  "mid_initiated", "targets_democracy",
+  "legit_ratio", "legit_total",
+  "v2exl_legitideol_a", "v2exl_legitperf_a", "v2exl_legitlead_a",
+  "sidea_revisionist_domestic",
+  "cinc_a", "sidea_winning_coalition_size",
+  "t", "t2", "t3", "cold_war"
+)
+h56_vars <- intersect(h56_vars, names(dyad_ready))
+h56_data <- dyad_ready[, h56_vars, drop = FALSE]
+rm(dyad_ready, monadic_ready)
+gc()
+message(sprintf("[05] h56_data: %d rows x %d cols, %s",
+                nrow(h56_data), ncol(h56_data),
+                format(object.size(h56_data), units = "MB")))
+
+# Helpers
+strip_glm <- function(model) {
+  if (is.null(model)) return(NULL)
+  model$model <- NULL; model$data <- NULL; model$y <- NULL
+  model$linear.predictors <- NULL; model$fitted.values <- NULL
+  model$residuals <- NULL; model$weights <- NULL
+  model$prior.weights <- NULL; model$effects <- NULL
+  model$qr$qr <- NULL
+  attr(model$terms, ".Environment") <- globalenv()
+  model
+}
+
+safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs = 30) {
+  vars <- all.vars(formula)
+  for (v in vars) {
+    if (!v %in% names(data)) { warning(sprintf("[05] '%s' not found. Skipping.", v)); return(NULL) }
+    if (all(is.na(data[[v]]))) { warning(sprintf("[05] '%s' all NA. Skipping.", v)); return(NULL) }
+  }
+  if (sum(complete.cases(data[, vars, drop = FALSE])) < min_obs) {
+    warning("[05] Insufficient complete cases. Skipping."); return(NULL)
+  }
+  if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
+    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit),
+                    error = function(e) NULL)
+    if (!is.null(fit)) return(strip_glm(fit))
+  }
+  fit <- tryCatch(glm(formula, family = family, data = data, control = glm.control(maxit = 100)),
+                  error = function(e) { warning(sprintf("[05] glm failed: %s", e$message)); NULL })
+  strip_glm(fit)
+}
 
 # ==============================================================================
-# 1. Hypothesis 5: Legitimation Mix — Initiation ----
-# H5: The relative dependence on ideological legitimation (compared to
-#     performance or personalist legitimation) increases the likelihood of
-#     conflict initiation, all else equal.
-# DV:  mid_initiated
-# IV:  legit_ratio (ideological share of legitimation portfolio)
+# 1. H5: Legitimation Mix -- Initiation ----
 # ==============================================================================
-
-#' Estimate H5 Logit Models (Legitimation Mix -> MID Initiation)
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return A named list of GLM objects
 estimate_h5_logit <- function(data) {
-
-  # h5_baseline: Legitimation ratio only
-  h5_baseline <- glm(mid_initiated ~ legit_ratio,
-                     family = binomial(link = "logit"),
-                     data = data)
-
-  # h5_components: Add legitimation components (decomposition)
-  h5_components <- glm(mid_initiated ~ legit_ratio +
-                        v2exl_legitperf_a + v2exl_legitlead_a,
-                       family = binomial(link = "logit"),
-                       data = data)
-
-  # h5_controls: Add capabilities and selectorate
-  h5_controls <- glm(mid_initiated ~ legit_ratio +
-                      cinc_a +
-                      sidea_winning_coalition_size,
-                     family = binomial(link = "logit"),
-                     data = data)
-
-  # h5_full: Full model with target regime + temporal controls
-  h5_full <- glm(mid_initiated ~ legit_ratio +
-                  v2exl_legitperf_a + v2exl_legitlead_a +
-                  targets_democracy +
-                  cinc_a +
-                  sidea_winning_coalition_size +
-                  t + t2 + t3 + cold_war,
-                 family = binomial(link = "logit"),
-                 data = data)
-
-  return(list(
-    h5_baseline   = h5_baseline,
-    h5_components = h5_components,
-    h5_controls   = h5_controls,
-    h5_full       = h5_full
-  ))
+  h5_baseline   <- safe_glm(mid_initiated ~ legit_ratio, data = data)
+  h5_components <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a, data = data)
+  h5_controls   <- safe_glm(mid_initiated ~ legit_ratio + cinc_a + sidea_winning_coalition_size, data = data)
+  h5_full       <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
+                              targets_democracy + cinc_a + sidea_winning_coalition_size +
+                              t + t2 + t3 + cold_war, data = data)
+  list(h5_baseline = h5_baseline, h5_components = h5_components,
+       h5_controls = h5_controls, h5_full = h5_full)
 }
 
-#' Estimate H5 Hurdle Models (Two-part: any conflict + conflict count)
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return A named list: hurdle_initiation (logit part) and hurdle_count (count part)
 estimate_h5_hurdle <- function(data) {
-
-  # Part 1 (binary hurdle): Does legitimation mix predict any conflict?
-  hurdle_binary <- glm(mid_initiated ~ legit_ratio +
-                        v2exl_legitperf_a + v2exl_legitlead_a +
-                        targets_democracy +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + t2 + t3 + cold_war,
-                       family = binomial(link = "logit"),
-                       data = data)
-
-  # Part 2 (count): Among conflict initiators, does legitimation mix predict
-  # number of MIDs? (uses Poisson; swap for negative binomial if overdispersed)
+  hurdle_binary <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
+                              targets_democracy + cinc_a + sidea_winning_coalition_size +
+                              t + t2 + t3 + cold_war, data = data)
   initiators <- data %>% filter(mid_initiated == 1)
-
-  hurdle_count <- glm(mid_initiated ~ legit_ratio +
-                       v2exl_legitperf_a + v2exl_legitlead_a +
-                       cinc_a +
-                       sidea_winning_coalition_size +
-                       cold_war,
-                      family = poisson(link = "log"),
-                      data = initiators)
-
-  return(list(
-    hurdle_binary = hurdle_binary,
-    hurdle_count  = hurdle_count
-  ))
+  hurdle_count <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
+                             cinc_a + sidea_winning_coalition_size + cold_war,
+                           data = initiators, family = poisson(link = "log"))
+  list(hurdle_binary = hurdle_binary, hurdle_count = hurdle_count)
 }
 
 # ==============================================================================
-# 2. Hypothesis 6: Legitimation Mix — Targeting ----
-# H6: The relative dependence on ideological legitimation increases the
-#     likelihood of targeting democracies, all else equal.
-# DV:  targets_democracy (conditional on mid_initiated == 1)
-# IV:  legit_ratio
+# 2. H6: Legitimation Mix -- Targeting ----
 # ==============================================================================
-
-#' Estimate H6 Logit Models (Legitimation Mix -> Democracy Targeting)
-#' @param data Prepared dyadic data (dyad_ready)
-#' @return A named list of GLM objects
 estimate_h6_logit <- function(data) {
-
-  # Filter to conflict initiations only
   conflict_data <- data %>% filter(mid_initiated == 1)
-
-  # h6_baseline: Legitimation ratio only
-  h6_baseline <- glm(targets_democracy ~ legit_ratio,
-                     family = binomial(link = "logit"),
-                     data = conflict_data)
-
-  # h6_components: Add legitimation components
-  h6_components <- glm(targets_democracy ~ legit_ratio +
-                        v2exl_legitperf_a + v2exl_legitlead_a,
-                       family = binomial(link = "logit"),
-                       data = conflict_data)
-
-  # h6_controls: Add capabilities and selectorate
-  h6_controls <- glm(targets_democracy ~ legit_ratio +
-                      cinc_a +
-                      sidea_winning_coalition_size,
-                     family = binomial(link = "logit"),
-                     data = conflict_data)
-
-  # h6_full: Full model with temporal controls
-  h6_full <- glm(targets_democracy ~ legit_ratio +
-                  v2exl_legitperf_a + v2exl_legitlead_a +
-                  cinc_a +
-                  sidea_winning_coalition_size +
-                  t + cold_war,
-                 family = binomial(link = "logit"),
-                 data = conflict_data)
-
-  # h6_interaction: Interaction of ideological ratio with leader ideology (test of H1xH5)
-  h6_interaction <- glm(targets_democracy ~ legit_ratio * sidea_revisionist_domestic +
-                         cinc_a +
-                         sidea_winning_coalition_size +
-                         t + cold_war,
-                        family = binomial(link = "logit"),
-                        data = conflict_data)
-
-  return(list(
-    h6_baseline    = h6_baseline,
-    h6_components  = h6_components,
-    h6_controls    = h6_controls,
-    h6_full        = h6_full,
-    h6_interaction = h6_interaction
-  ))
+  if (nrow(conflict_data) == 0) {
+    warning("[05] No conflict initiations. H6 skipped.")
+    return(list(h6_baseline = NULL, h6_components = NULL,
+                h6_controls = NULL, h6_full = NULL, h6_interaction = NULL))
+  }
+  h6_baseline    <- safe_glm(targets_democracy ~ legit_ratio, data = conflict_data)
+  h6_components  <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a,
+                              data = conflict_data)
+  h6_controls    <- safe_glm(targets_democracy ~ legit_ratio + cinc_a + sidea_winning_coalition_size,
+                              data = conflict_data)
+  h6_full        <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
+                                cinc_a + sidea_winning_coalition_size + t + cold_war,
+                              data = conflict_data)
+  h6_interaction <- safe_glm(targets_democracy ~ legit_ratio * sidea_revisionist_domestic +
+                                cinc_a + sidea_winning_coalition_size + t + cold_war,
+                              data = conflict_data)
+  list(h6_baseline = h6_baseline, h6_components = h6_components,
+       h6_controls = h6_controls, h6_full = h6_full, h6_interaction = h6_interaction)
 }
 
 # ==============================================================================
 # 3. Execution and Saving Results ----
 # ==============================================================================
+h5_logit_models  <- estimate_h5_logit(h56_data)
+h5_hurdle_models <- estimate_h5_hurdle(h56_data)
+h6_logit_models  <- estimate_h6_logit(h56_data)
 
-# Run H5 models
-h5_logit_models  <- estimate_h5_logit(dyad_ready)
-h5_hurdle_models <- estimate_h5_hurdle(dyad_ready)
-
-# Run H6 models
-h6_logit_models <- estimate_h6_logit(dyad_ready)
-
-# Save results for reporting scripts
 dir.create("results", showWarnings = FALSE)
 saveRDS(h5_logit_models,  "results/h5_logit_models.rds")
 saveRDS(h5_hurdle_models, "results/h5_hurdle_models.rds")
 saveRDS(h6_logit_models,  "results/h6_logit_models.rds")
 
-message("[05_h5_h6_legitmix.R] H5 and H6 analysis complete. Models saved to results/")
+rm(h56_data, h56_vars, h5_logit_models, h5_hurdle_models, h6_logit_models)
+gc()
+message("[05_h5_h6_legitmix.R] Done. Models saved to results/")
