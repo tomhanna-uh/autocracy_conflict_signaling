@@ -123,7 +123,10 @@ prep_monadic <- function(dyad_df) {
 
       # Controls
       log_cinc  = log(cinc_a + 0.0001),
-      cold_war  = as.integer(year >= 1947 & year <= 1991)
+      cold_war  = as.integer(year >= 1947 & year <= 1991),
+      # M1/M2 mediation variables
+      log_tenure = log(tenure + 1),
+      avg_other_legit = v2exl_legitperf_a + v2exl_legitlead_a
     ) %>%
     # Peace years logic
     arrange(COWcode, year) %>%
