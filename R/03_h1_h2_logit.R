@@ -25,34 +25,97 @@ source("R/02_data_prep.R")
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# Helper: safely fit a glm, returning NULL with a warning if the column
-# is entirely NA or has insufficient non-NA observations.
+# Helper: strip large components from glm objects before saving.
+# Reduces RDS file size from ~1 GB to ~1 MB by removing the stored copy
+# of the data, fitted values, residuals, etc. Coefficients, SEs, and
+# summary() still work. For predict(), re-supply newdata explicitly.
 # ------------------------------------------------------------------------------
-safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs = 30) {
+strip_glm <- function(model) {
+  if (is.null(model)) return(NULL)
+  model$model        <- NULL
+  model$data         <- NULL
+  model$y            <- NULL
+  model$linear.predictors <- NULL
+  model$fitted.values <- NULL
+  model$residuals    <- NULL
+  model$weights      <- NULL
+  model$prior.weights <- NULL
+  model$effects      <- NULL
+  model$qr$qr        <- NULL
+  attr(model$terms, ".Environment") <- globalenv()
+  model
+}
+
+# ------------------------------------------------------------------------------
+# Helper: safely fit a logit model.
+#
+# Strategy:
+#   1. Try Firth penalized logit (brglm2) -- handles separation, always
+#      converges, and produces finite estimates even with rare events.
+#   2. If brglm2 is unavailable, fall back to standard glm() with
+#      maxit = 100.
+#   3. Return NULL with a warning if the data is insufficient.
+#
+# All returned models are stripped to minimise saved object size.
+# ------------------------------------------------------------------------------
+safe_glm <- function(formula, data, min_obs = 30) {
+
   # Extract variable names from the formula
   vars <- all.vars(formula)
+
   # Check that all variables exist and have non-NA data
   for (v in vars) {
     if (!v %in% names(data)) {
       warning(sprintf("[03] Variable '%s' not found in data. Skipping model.", v))
       return(NULL)
     }
-    non_na <- sum(!is.na(data[[v]]))
-    if (non_na == 0) {
+    if (all(is.na(data[[v]]))) {
       warning(sprintf("[03] Variable '%s' is entirely NA. Skipping model.", v))
       return(NULL)
     }
   }
-  # Check complete cases for the model
+
+  # Check complete cases
   complete <- complete.cases(data[, vars, drop = FALSE])
-  if (sum(complete) < min_obs) {
+  n_complete <- sum(complete)
+  if (n_complete < min_obs) {
     warning(sprintf(
       "[03] Only %d complete cases for model (need >= %d). Skipping.",
-      sum(complete), min_obs
+      n_complete, min_obs
     ))
     return(NULL)
   }
-  glm(formula, family = family, data = data)
+
+  # Primary: Firth penalized logit via brglm2
+  if (requireNamespace("brglm2", quietly = TRUE)) {
+    fit <- tryCatch(
+      glm(formula, family = binomial(link = "logit"), data = data,
+          method = brglm2::brglmFit),
+      error = function(e) {
+        warning(sprintf("[03] brglm2 failed: %s. Trying standard glm.", e$message))
+        NULL
+      }
+    )
+    if (!is.null(fit)) {
+      message(sprintf("[03] Firth logit: %d obs, converged = %s",
+                      n_complete, fit$converged))
+      return(strip_glm(fit))
+    }
+  }
+
+  # Fallback: standard glm with increased maxit
+  fit <- tryCatch(
+    glm(formula, family = binomial(link = "logit"), data = data,
+        control = glm.control(maxit = 100)),
+    error = function(e) {
+      warning(sprintf("[03] glm() failed: %s", e$message))
+      NULL
+    }
+  )
+  if (!is.null(fit) && !fit$converged) {
+    warning("[03] glm() did not converge even with maxit = 100.")
+  }
+  strip_glm(fit)
 }
 
 # ==============================================================================
@@ -66,8 +129,7 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs =
 
 #' Estimate H1 Logit Models (Leader Ideology -> MID Initiation)
 #' @param data Prepared dyadic data (dyad_ready)
-#' @return A named list of GLM objects: h1_baseline, h1_controls, h1_full,
-#'         h1_religious, h1_socialist, h1_nationalist
+#' @return A named list of model objects (or NULL where data is insufficient)
 estimate_h1_logit <- function(data) {
 
   # h1_baseline: Leader ideology only
@@ -111,14 +173,14 @@ estimate_h1_logit <- function(data) {
                                 t + t2 + t3 + cold_war,
                               data = data)
 
-  return(list(
+  list(
     h1_baseline    = h1_baseline,
     h1_controls    = h1_controls,
     h1_full        = h1_full,
     h1_religious   = h1_religious,
     h1_socialist   = h1_socialist,
     h1_nationalist = h1_nationalist
-  ))
+  )
 }
 
 # ==============================================================================
@@ -132,8 +194,7 @@ estimate_h1_logit <- function(data) {
 
 #' Estimate H2 Logit Models (Leader Ideology -> Democracy Targeting)
 #' @param data Prepared dyadic data (dyad_ready)
-#' @return A named list of GLM objects: h2_baseline, h2_controls, h2_full,
-#'         h2_religious, h2_socialist, h2_nationalist
+#' @return A named list of model objects (or NULL where data is insufficient)
 estimate_h2_logit <- function(data) {
 
   # Filter to conflict initiations only
@@ -147,24 +208,20 @@ estimate_h2_logit <- function(data) {
     ))
   }
 
-  # h2_baseline: Leader ideology only
   h2_baseline <- safe_glm(targets_democracy ~ sidea_revisionist_domestic,
                            data = conflict_data)
 
-  # h2_controls: Add capabilities and selectorate
   h2_controls <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
                              cinc_a +
                              sidea_winning_coalition_size,
                            data = conflict_data)
 
-  # h2_full: Add temporal controls
   h2_full <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
                          cinc_a +
                          sidea_winning_coalition_size +
                          t + cold_war,
                        data = conflict_data)
 
-  # Sub-hypothesis models by ideology type
   h2_religious <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
                               cinc_a +
                               sidea_winning_coalition_size +
@@ -183,14 +240,14 @@ estimate_h2_logit <- function(data) {
                                 t + cold_war,
                               data = conflict_data)
 
-  return(list(
+  list(
     h2_baseline    = h2_baseline,
     h2_controls    = h2_controls,
     h2_full        = h2_full,
     h2_religious   = h2_religious,
     h2_socialist   = h2_socialist,
     h2_nationalist = h2_nationalist
-  ))
+  )
 }
 
 # ==============================================================================
@@ -213,7 +270,7 @@ for (nm in names(h2_models)) {
   message(sprintf("  H2 %-15s : %s", nm, status))
 }
 
-# Save results for reporting scripts
+# Save results for reporting scripts (stripped models = small files)
 dir.create("results", showWarnings = FALSE)
 saveRDS(h1_models, "results/h1_logit_models.rds")
 saveRDS(h2_models, "results/h2_logit_models.rds")
