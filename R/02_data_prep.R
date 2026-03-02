@@ -2,7 +2,7 @@
 #
 # All data sourced from grave_d_data2026 via 01_load_data.R.
 # Monadic data is derived from the dyadic master by collapsing to
-# country-year (Side A only).
+#   country-year (Side A only).
 
 # Load required scripts
 source("R/00_packages.R")
@@ -19,7 +19,7 @@ prep_dyad <- function(df) {
   df %>%
     mutate(
       # Outcome variables
-      mid_initiated  = as.integer(hihosta >= 2),
+      mid_initiated = as.integer(hihosta >= 2),
       targets_democracy = as.integer(v2x_libdem_b >= 0.5),
 
       # Ideology Gap (2025 H3 Component)
@@ -63,9 +63,13 @@ prep_monadic <- function(dyad_df) {
     group_by(COWcode_a, year) %>%
     summarise(
       # Conflict: did this country initiate any MID this year?
-      first_use_force = as.integer(any(hihosta >= 4, na.rm = TRUE)),
-      mid_initiated   = as.integer(any(hihosta >= 2, na.rm = TRUE)),
+      first_use_force   = as.integer(any(hihosta >= 4, na.rm = TRUE)),
+      mid_initiated     = as.integer(any(hihosta >= 2, na.rm = TRUE)),
       targets_democracy = as.integer(any(v2x_libdem_b >= 0.5, na.rm = TRUE)),
+
+      # Conflict counts for survival models (H9)
+      n_mids            = sum(hihosta >= 2, na.rm = TRUE),
+      n_vs_democracy    = sum(hihosta >= 2 & v2x_libdem_b >= 0.5, na.rm = TRUE),
 
       # Side A attributes (take first non-NA, all should be same within country-year)
       v2exl_legitideol_a = first(v2exl_legitideol_a),
@@ -75,10 +79,21 @@ prep_monadic <- function(dyad_df) {
       cinc_a             = first(cinc_a),
 
       # GRAVE-D variables
-      sidea_revisionist_domestic = first(sidea_revisionist_domestic),
-      sidea_dynamic_leader       = first(sidea_dynamic_leader),
-      sidea_winning_coalition_size = first(sidea_winning_coalition_size),
-      sidea_military_support     = first(sidea_military_support),
+      sidea_revisionist_domestic    = first(sidea_revisionist_domestic),
+      sidea_dynamic_leader          = first(sidea_dynamic_leader),
+      sidea_winning_coalition_size   = first(sidea_winning_coalition_size),
+      sidea_military_support        = first(sidea_military_support),
+
+      # Survival / leader variables from GRAVE-D
+      tenure              = first(tenure),
+      entry               = first(entry),
+      irregulartransition = first(irregulartransition),
+      posttenurefate      = first(posttenurefate),
+
+      # Economic / population controls
+      flgdpen  = first(flgdpen),
+      tpop     = first(tpop),
+      epop_a   = first(epop_a),
 
       .groups = "drop"
     ) %>%
@@ -86,9 +101,30 @@ prep_monadic <- function(dyad_df) {
     mutate(
       # Legitimation mix (monadic)
       legit_ratio = v2exl_legitideol_a / (v2exl_legitideol_a + v2exl_legitperf_a + v2exl_legitlead_a + 0.01),
+
+      # Survival variables (H9)
+      tenure_years    = tenure,
+      irregular_entry = as.integer(irregulartransition == 1),
+      # survived_to_end: 1 if leader survived to end of tenure normally
+      # posttenurefate codes: typically 0/1 = regular exit, higher = irregular
+      # Invert: event = did NOT survive (irregular removal)
+      survived_to_end = as.integer(!is.na(posttenurefate) & posttenurefate <= 1),
+
+      # Conflict counts for H9 (cumulative by leader spell)
+      conflicts_vs_ideo_targets  = n_mids,
+      conflicts_vs_democracy     = n_vs_democracy,
+      conflicts_vs_ideo_opponent = n_mids,  # placeholder; refine if ideo opponent data available
+
+      # Averaged controls for H9
+      avg_ideological_legit = v2exl_legitideol_a,
+      avg_autocracy_level   = 1 - v2x_libdem_a,  # higher = more autocratic
+      log_avg_gdp           = log(flgdpen + 1),
+      log_avg_pop           = log(ifelse(!is.na(epop_a), epop_a,
+                                         ifelse(!is.na(tpop), tpop, NA)) + 1),
+
       # Controls
-      log_cinc = log(cinc_a + 0.0001),
-      cold_war = as.integer(year >= 1947 & year <= 1991)
+      log_cinc  = log(cinc_a + 0.0001),
+      cold_war  = as.integer(year >= 1947 & year <= 1991)
     ) %>%
     # Peace years logic
     arrange(COWcode, year) %>%
@@ -96,7 +132,7 @@ prep_monadic <- function(dyad_df) {
     mutate(
       conflict_year = if_else(mid_initiated == 1, year, NA_integer_),
       last_conflict = cummax(if_else(is.na(conflict_year), 0L, conflict_year)),
-      peace_years = if_else(last_conflict == 0L, 35L, as.integer(year - last_conflict)),
+      peace_years   = if_else(last_conflict == 0L, 35L, as.integer(year - last_conflict)),
       t  = peace_years,
       t2 = t^2,
       t3 = t^3
@@ -109,9 +145,8 @@ monadic_ready <- prep_monadic(dyad_df)
 # 4. Save Ready Data (Internal Use) ----
 # Using .rds preserves factors and attributes
 dir.create("ready_data", showWarnings = FALSE)
-saveRDS(dyad_ready,   "ready_data/dyad_ready.rds")
+saveRDS(dyad_ready, "ready_data/dyad_ready.rds")
 saveRDS(monadic_ready, "ready_data/monadic_ready.rds")
-
 message("Data preparation complete. Ready files saved to ready_data/")
 
 # 5. Memory Cleanup ----
@@ -120,5 +155,5 @@ message("Data preparation complete. Ready files saved to ready_data/")
 rm(dyad_df, prep_dyad, prep_monadic)
 gc()
 message(sprintf("[02] Cleanup done. dyad_ready: %s, monadic_ready: %s",
-                format(object.size(dyad_ready),  units = "MB"),
+                format(object.size(dyad_ready), units = "MB"),
                 format(object.size(monadic_ready), units = "MB")))
