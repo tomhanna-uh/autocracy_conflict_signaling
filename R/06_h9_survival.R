@@ -16,10 +16,19 @@ h9_vars <- c(
   "avg_autocracy_level", "log_avg_gdp", "log_avg_pop",
   "irregular_entry", "tenure_years", "survived_to_end"
 )
+
+# Check which vars are missing before subsetting
+h9_missing <- setdiff(h9_vars, names(monadic_ready))
+if (length(h9_missing) > 0) {
+  warning(sprintf("[06] Missing columns in monadic_ready: %s",
+                  paste(h9_missing, collapse = ", ")))
+}
+
 h9_vars <- intersect(h9_vars, names(monadic_ready))
 h9_data <- monadic_ready[, h9_vars, drop = FALSE]
 rm(dyad_ready, monadic_ready)
 gc()
+
 message(sprintf("[06] h9_data: %d rows x %d cols, %s",
                 nrow(h9_data), ncol(h9_data),
                 format(object.size(h9_data), units = "MB")))
@@ -27,8 +36,37 @@ message(sprintf("[06] h9_data: %d rows x %d cols, %s",
 # ==============================================================================
 # 1. H9: Survival Mediation ----
 # ==============================================================================
+
 estimate_h9_survival <- function(data) {
-  surv_data <- data %>% mutate(event = as.integer(survived_to_end == 0))
+
+  # Validate required columns
+  required <- c("survived_to_end", "tenure_years")
+  for (v in required) {
+    if (!v %in% names(data)) {
+      warning(sprintf("[06] Required column '%s' missing. H9 models skipped.", v))
+      return(list(
+        cox_h9_ideology = NULL, cox_h9_ratio = NULL,
+        cox_h9_int_ideology = NULL, cox_h9_int_ratio = NULL,
+        cox_h9_direct = NULL, cox_h9_full = NULL
+      ))
+    }
+  }
+
+  surv_data <- data %>%
+    filter(!is.na(survived_to_end) & !is.na(tenure_years) & tenure_years > 0) %>%
+    mutate(event = as.integer(survived_to_end == 0))
+
+  message(sprintf("[06] Survival data: %d rows, %d events",
+                  nrow(surv_data), sum(surv_data$event, na.rm = TRUE)))
+
+  if (nrow(surv_data) < 30) {
+    warning("[06] Too few survival observations. H9 models skipped.")
+    return(list(
+      cox_h9_ideology = NULL, cox_h9_ratio = NULL,
+      cox_h9_int_ideology = NULL, cox_h9_int_ratio = NULL,
+      cox_h9_direct = NULL, cox_h9_full = NULL
+    ))
+  }
 
   safe_cox <- function(formula, data) {
     vars <- all.vars(formula)
@@ -84,7 +122,14 @@ estimate_h9_survival <- function(data) {
 # ==============================================================================
 # 2. Execution and Saving Results ----
 # ==============================================================================
+
 h9_survival <- estimate_h9_survival(h9_data)
+
+# Report which models succeeded
+for (nm in names(h9_survival)) {
+  status <- if (!is.null(h9_survival[[nm]])) "OK" else "SKIPPED"
+  message(sprintf("  H9 %-25s : %s", nm, status))
+}
 
 dir.create("results", showWarnings = FALSE)
 saveRDS(h9_survival, "results/h9_survival.rds")
