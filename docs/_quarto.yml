@@ -13,7 +13,10 @@ book:
   date-format: "MMMM D, YYYY"
   doi: ""
   license: CC BY-NC-SA 4.0
-        copyright: "Tom Hanna, 2020–2025"
+    copyright:
+          holder: Tom Hanna
+                year: 2026
+
   chapters:
     - index.qmd
     - theory.qmd
