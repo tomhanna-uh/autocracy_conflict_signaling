@@ -13,7 +13,7 @@
 library(here)
 library(tidyverse)
 
-source("R/check_paths.R")
+source(here::here("R", "check_paths.R"))
 
 grave_d_path <- check_grave_d_path("GRAVE_D_Master_with_Leaders.csv")
 
