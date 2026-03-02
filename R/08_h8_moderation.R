@@ -46,7 +46,8 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs =
     warning("[08] Insufficient complete cases. Skipping."); return(NULL)
   }
   if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
-    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit),
+    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit,
+              control = list(maxit = 300, epsilon = 1e-6)),
                     error = function(e) NULL)
     if (!is.null(fit)) return(strip_glm(fit))
   }
