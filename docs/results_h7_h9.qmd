@@ -29,7 +29,7 @@ This chapter presents results for Tier 3 hypotheses, which explore complex causa
 h7_med_sum <- list(
   "Religious Support" = h7_mediation$med_h7_religious,
   "Party Elite Support" = h7_mediation$fit_h7_party,
-  "Military Support" = h7_mediation$fit_h7_socialist
+  "Military Support" = h7_mediation$fit_h7_military
 )
 
 # Custom summary table for ACME/ADE
