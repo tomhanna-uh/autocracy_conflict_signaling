@@ -6,7 +6,7 @@ check_grave_d_path <- function(
                                             filename = "GRAVE_D_Master_with_Leaders.csv"
 ) {
   # Expected relative path from autocracy_conflict_signaling/
-  rel_path <- file.path("..", "grave_d_data2026", "ready_data", filename)
+    rel_path <- file.path(here::here(), "..", "grave_d_data2026", "ready_data", filename)
 
   # Resolve to absolute path (without assuming a specific root like C:/Users/...)
   abs_path <- normalizePath(rel_path, winslash = "\\", mustWork = FALSE)
