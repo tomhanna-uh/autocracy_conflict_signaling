@@ -26,7 +26,7 @@ if (length(h9_missing) > 0) {
 
 h9_vars <- intersect(h9_vars, names(monadic_ready))
 h9_data <- monadic_ready[, h9_vars, drop = FALSE]
-rm(dyad_ready, monadic_ready)
+# NOTE: dyad_ready/monadic_ready kept in memory for pipeline efficiency
 gc()
 
 message(sprintf("[06] h9_data: %d rows x %d cols, %s",
