@@ -15,15 +15,52 @@ if (file.exists(dyad_ready_path)) {
 
 ## Data Sources
 
-The primary dataset is **GRAVE_D_Master_with_Leaders.csv**, which integrates four source datasets:
+The primary dataset is **GRAVE_D_Master_with_Leaders.csv**, produced by the GRAVE-D data pipeline (Hanna 2026). GRAVE-D is not itself a primary data collection effort; rather, it is an integration, harmonization, and extension layer built on top of more than a dozen established political science and economics datasets. Its principal contributions are:
 
-1. **GRAVE-D** (Geopolitical Revisionism and Violent Extremism Dataset — Dyadic): Provides dyadic militarized interstate dispute data with GRAVE-D leadership ideology scores and support group composition variables for each state's governing regime on the conflict-initiating side.
+- **Structural organization**: converting monadic country-year source data into a directed dyad-year panel using the Formal Bilateral Influence Capacity (FBIC) index [@MoyerEtAl_FBIC] as the dyadic spine, enabling analysis of bilateral relationships;
+- **Derived variables**: constructing composite indices (e.g., *revisionist potential*, *ideological extremity*, *religious distance*) and interaction terms not present in any single source;
+- **Missingness management**: applying a multi-stage imputation protocol (linear interpolation, regional-year median fill, and derived variable recomputation) documented in the GRAVE-D codebook;
+- **Original coding**: ALBA (Bolivarian Alliance) membership indicators.
 
-2. **V-Dem** (Varieties of Democracy, v13): Supplies the legitimation strategy variables used in Tier 2 analyses — `v2exl_legitideol` (ideological legitimation), `v2exl_legitlead` (personalist/leader legitimation), and `v2exl_legitperf` (performance legitimation) — as well as the liberal democracy index used to classify autocracies.
+The underlying source datasets, with their required citations, are:
 
-3. **Correlates of War — National Material Capabilities** (v6.0): Provides the Composite Index of National Capability (CINC) scores used as controls for material power balance.
+1. **Formal Bilateral Influence Capacity (FBIC) Index** [@MoyerEtAl_FBIC]: Provides the directed dyad-year spine and all bandwidth variables (total, economic, political, security).
 
-4. **Leader tenure and entry/exit data**: Merged from the Archigos dataset [@goemans2009archigos] via the GRAVE-D master file to support leader-level survival analysis.
+2. **Varieties of Democracy (V-Dem)** v15 [@VDem_Dataset]: Supplies democracy and regime indices, legitimation strategy variables (`v2exl_legitideol`, `v2exl_legitlead`, `v2exl_legitperf`, `v2exl_legitratio`), civil society, corruption, rule of law, power distribution, regime support group, and head-of-state/government variables for both sides of each dyad.
+
+3. **V-Dem Episodes of Regime Transformation (ERT)** [@EdgellEtAl2020_ERT]: Regime transition episodes data.
+
+4. **Correlates of War --- Militarized Interstate Disputes (MIDs)** v5 [@COW_MIDs_v5]: Provides hostility-level data from which `mid_initiated` and conflict outcomes are derived.
+
+5. **Correlates of War --- National Material Capabilities (NMC)** v6 [@COW_NMC_v6]: Provides Composite Index of National Capability (CINC) scores used as controls for material power.
+
+6. **Alliance Treaty Obligations and Provisions (ATOP)** v5.1 [@LeedsEtAl2002_ATOP; @ATOP_Dataset]: Alliance type indicators (defense, offense, neutrality, non-aggression, consultation).
+
+7. **Correlates of War --- World Religion Project** [@COW_WorldReligion]: Religious demographic shares used to compute religious distance variables.
+
+8. **Archigos** [@GoemansEtAl2009_Archigos; @Archigos_Dataset]: Leader tenure, entry/exit modes, and post-tenure fate variables.
+
+9. **Colgan Revolutionary Leaders Dataset** [@Colgan2013_RevolutionaryLeaders; @Colgan_RevolutionaryLeaders_Dataset]: Revolutionary leader classification and revolutionary change category variables.
+
+10. **Global Leader Ideology Dataset** [@Herre2022_GlobalLeaderIdeology_Dataset]: Leader ideology scores, legal tradition, and polity-level controls.
+
+11. **Polity5**: Polity democracy/autocracy scores and regime durability.
+
+12. **First Use of Violent Force Dataset** [@CaprioliTrumbore2003_FirstUse]: First-use-of-force coding for MIDs.
+
+13. **Hanson and Sigman State Capacity Index** [@HansonSigman2021_StateCapacity]: State fiscal and administrative capacity measures.
+
+14. **Fraser Institute Economic Freedom Dataset** [@GwartneyEtAl2022_EFW_Dataset]: Economic freedom indices.
+
+15. **Maddison Project Database** [@BoltVanZanden2014_MaddisonProject; @MaddisonProject_Database]: Historical GDP per capita.
+
+16. **Ross Oil and Gas Dataset** [@Ross_OilGas_Dataset]: Fuel and oil income per capita.
+
+17. **Standardized World Income Inequality Database (SWIID)** [@Solt2020_SWIID; @SWIID_Dataset]: Income inequality (Gini) estimates.
+
+18. **RED --- Relational Export Dataset** [@RED_Dataset]: Trade relationship data.
+
+19. **ALBA Membership** (Hanna 2026): Original coding of Bolivarian Alliance membership.
 
 The sample is restricted to dyad-years in which Side A is classified as autocratic ($v2x\_libdem_a < 0.5$) and the year is 1946 or later (post-World War II international order).
 
