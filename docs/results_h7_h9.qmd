@@ -11,6 +11,56 @@ h7_sem       <- readRDS(here::here("results", "h7_sem.rds"))
 h8_init      <- readRDS(here::here("results", "h8_init_models.rds"))
 h8_target    <- readRDS(here::here("results", "h8_target_models.rds"))
 h9_survival  <- readRDS(here::here("results", "h9_survival.rds"))
+
+# Universal coefficient extractor (avoids summary() which crashes on brglmFit)
+extract_coefs <- function(model, model_name) {
+  if (is.null(model)) return(NULL)
+  tryCatch({
+    if (inherits(model, "logistf")) {
+      data.frame(model = model_name, term = names(coef(model)),
+                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+    } else if (inherits(model, "coxph")) {
+      s <- summary(model)
+      data.frame(model = model_name, term = rownames(s$coefficients),
+                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+    } else {
+      beta <- coef(model)
+      v <- tryCatch(vcov(model), error = function(e) NULL)
+      se <- if (is.null(v)) rep(NA_real_, length(beta)) else sqrt(diag(v))
+      z <- beta / se
+      pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+      data.frame(model = model_name, term = names(beta),
+                 estimate = beta, std.error = se, p.value = pval,
+                 stringsAsFactors = FALSE, row.names = NULL)
+    }
+  }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
+}
+
+build_model_table <- function(model_list, coef_labels = NULL) {
+  all_coefs <- do.call(rbind, Filter(Negate(is.null),
+    Map(extract_coefs, model_list, names(model_list))))
+  if (is.null(all_coefs) || nrow(all_coefs) == 0) {
+    message("No model coefficients could be extracted.")
+    return(invisible(NULL))
+  }
+  if (!is.null(coef_labels)) {
+    all_coefs <- all_coefs[all_coefs$term %in% names(coef_labels), ]
+    all_coefs$label <- coef_labels[all_coefs$term]
+  } else {
+    all_coefs$label <- all_coefs$term
+  }
+  all_coefs$stars <- ifelse(all_coefs$p.value < 0.001, "***",
+    ifelse(all_coefs$p.value < 0.01, "**",
+    ifelse(all_coefs$p.value < 0.05, "*", "")))
+  all_coefs$cell <- paste0(sprintf("%.3f", all_coefs$estimate),
+    all_coefs$stars, " (", sprintf("%.3f", all_coefs$std.error), ")")
+  wide <- reshape(all_coefs[, c("label", "model", "cell")],
+    idvar = "label", timevar = "model", direction = "wide")
+  names(wide) <- gsub("cell\\.", "", names(wide))
+  knitr::kable(wide, row.names = FALSE)
+}
 ```
 
 This chapter presents results for Tier 3 hypotheses, which explore complex causal mechanisms: support group mediation (**H7**), dynamic leadership moderation (**H8**), and the survival benefits of ideological conflict (**H9**).
@@ -24,6 +74,7 @@ This chapter presents results for Tier 3 hypotheses, which explore complex causa
 ```{r}
 #| label: tbl-h7-med
 #| tbl-cap: "H7 Mediation Analysis: Indirect Effects of Ideology through Support Groups"
+
 # Summarize mediation objects
 h7_med_sum <- list(
   "Religious Support" = h7_mediation$med_h7_religious,
@@ -43,6 +94,7 @@ The results indicate a significant Average Causal Mediation Effect (ACME) for re
 #| label: tbl-h7-sem
 #| tbl-cap: "H7 SEM Mediation: lavaan Path Estimates"
 #| results: asis
+
 # Modelsummary or custom table for lavaan objects
 ```
 
@@ -53,21 +105,13 @@ The results indicate a significant Average Causal Mediation Effect (ACME) for re
 ```{r}
 #| label: tbl-h8
 #| tbl-cap: "H8: Dynamic Leadership Moderation (Conflict Initiation and Targeting)"
-#| results: asis
-stargazer(
-  h8_init$h8_init_main, h8_init$h8_init_int,
-  h8_target$h8_target_main, h8_target$h8_target_int,
-  type = "html",
-  title = "H8: Dynamic Leadership Moderation",
-  column.labels = c("Init (Main)", "Init (Int)", "Target (Main)", "Target (Int)"),
-  covariate.labels = c(
-    "Legitimation Ratio", "Dynamic Leader",
-    "Legit. Ratio × Dyn. Leader",
-    "Log CINC (A)", "Log CINC (B)", "Winning Coalition",
-        "Cold War", "Peace Years (t)", "t\\textsuperscript{2}", "t\\textsuperscript{3}"
-  ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll")
+build_model_table(
+  list(
+    "Init (Main)" = h8_init$h8_init_main,
+    "Init (Int)" = h8_init$h8_init_int,
+    "Target (Main)" = h8_target$h8_target_main,
+    "Target (Int)" = h8_target$h8_target_int
+  )
 )
 ```
 
@@ -80,25 +124,13 @@ As shown in @tbl-h8, the interaction between `legit_ratio` and `sidea_dynamic_le
 ```{r}
 #| label: tbl-h9
 #| tbl-cap: "H9: Leader Survival and Ideological Conflict (Cox PH Models)"
-#| results: asis
-stargazer(
-  h9_survival$cox_h9_direct,
-  h9_survival$cox_h9_ideology,
-  h9_survival$cox_h9_ratio,
-  h9_survival$cox_h9_int_ratio,
-  type = "html",
-  title = "H9: Leader Survival Analysis",
-  dep.var.labels = "Hazard of Leader Removal",
-  column.labels = c("(1) Direct", "(2) +Legit", "(3) +Ratio", "(4) Interaction"),
-  covariate.labels = c(
-    "Conflict vs. Ideo. Target",
-    "Avg. Ideo. Legitimation",
-    "Legitimation Ratio",
-    "Conflict × Legit. Ratio",
-    "Autocracy Level", "Log GDP", "Log Pop", "Irregular Entry"
-  ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll")
+build_model_table(
+  list(
+    "(1) Direct" = h9_survival$cox_h9_direct,
+    "(2) +Legit" = h9_survival$cox_h9_ideology,
+    "(3) +Ratio" = h9_survival$cox_h9_ratio,
+    "(4) Interaction" = h9_survival$cox_h9_int_ratio
+  )
 )
 ```
 
