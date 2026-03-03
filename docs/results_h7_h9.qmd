@@ -64,7 +64,7 @@ stargazer(
     "Legitimation Ratio", "Dynamic Leader",
     "Legit. Ratio × Dyn. Leader",
     "Log CINC (A)", "Log CINC (B)", "Winning Coalition",
-    "Cold War", "Peace Years (t)", "t\	extsuperscript{2}", "t\	extsuperscript{3}"
+        "Cold War", "Peace Years (t)", "t\\textsuperscript{2}", "t\\textsuperscript{3}"
   ),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
