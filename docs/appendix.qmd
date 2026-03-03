@@ -40,7 +40,7 @@ This appendix presents supplementary material, including descriptive statistics 
 #| label: tbl-descriptive
 #| tbl-cap: "Descriptive Statistics for Key Variables (Full Dyadic Sample)"
 key_vars <- dyad_ready %>%
-  select(
+  dplyr::select(
     mid_initiated,
     targets_democracy,
     sidea_revisionist_domestic,
@@ -70,7 +70,7 @@ datasummary_skim(
 #| tbl-cap: "Descriptive Statistics: Leader-Level Variables (Monadic Sample)"
 if (exists("monadic_ready")) {
   mono_vars <- monadic_ready %>%
-    select(
+    dplyr::select(
       tenure_years,
       survived_to_end,
       avg_ideological_legit,
@@ -99,7 +99,7 @@ if (exists("monadic_ready")) {
 library(ggcorrplot)
 
 corr_data <- dyad_ready %>%
-  select(
+  dplyr::select(
     sidea_revisionist_domestic,
     legit_ratio,
     v2exl_legitperf_a,
