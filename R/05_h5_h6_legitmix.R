@@ -59,23 +59,41 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs =
   strip_glm(fit)
 }
 
+# ------------------------------------------------------------------------------
+# Helper: safe VIF computation
+# ------------------------------------------------------------------------------
+safe_vif <- function(model, label = "") {
+  if (is.null(model)) return(NULL)
+  tryCatch({
+    v <- car::vif(model)
+    if (is.matrix(v)) v <- v[, "GVIF"]
+    message(sprintf("[05] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
+    v
+  }, error = function(e) {
+    message(sprintf("[05] VIF failed for %s: %s", label, e$message))
+    NULL
+  })
+}
+
 # ==============================================================================
 # 1. H5: Legitimation Mix -- Initiation ----
+# NOTE: targets_democracy is NOT included as a predictor for H5.
+#       It is a parallel DV (used in H6), not a control.
 # ==============================================================================
 estimate_h5_logit <- function(data) {
   h5_baseline   <- safe_glm(mid_initiated ~ legit_ratio, data = data)
   h5_components <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a, data = data)
   h5_controls   <- safe_glm(mid_initiated ~ legit_ratio + cinc_a + sidea_winning_coalition_size, data = data)
   h5_full       <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                               targets_democracy + cinc_a + sidea_winning_coalition_size +
-                               t + t2 + t3 + cold_war, data = data)
+                              cinc_a + sidea_winning_coalition_size +
+                              t + t2 + t3 + cold_war, data = data)
   list(h5_baseline = h5_baseline, h5_components = h5_components,
        h5_controls = h5_controls, h5_full = h5_full)
 }
 
 estimate_h5_hurdle <- function(data) {
   hurdle_binary <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                              targets_democracy + cinc_a + sidea_winning_coalition_size +
+                              cinc_a + sidea_winning_coalition_size +
                               t + t2 + t3 + cold_war, data = data)
   initiators <- data %>% filter(mid_initiated == 1)
   hurdle_count <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
@@ -96,9 +114,9 @@ estimate_h6_logit <- function(data) {
   }
   h6_baseline    <- safe_glm(targets_democracy ~ legit_ratio, data = conflict_data)
   h6_components  <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a,
-                              data = conflict_data)
+                             data = conflict_data)
   h6_controls    <- safe_glm(targets_democracy ~ legit_ratio + cinc_a + sidea_winning_coalition_size,
-                              data = conflict_data)
+                             data = conflict_data)
   h6_full        <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
                                cinc_a + sidea_winning_coalition_size + t + cold_war,
                              data = conflict_data)
@@ -116,11 +134,22 @@ h5_logit_models  <- estimate_h5_logit(h56_data)
 h5_hurdle_models <- estimate_h5_hurdle(h56_data)
 h6_logit_models  <- estimate_h6_logit(h56_data)
 
-dir.create("results", showWarnings = FALSE)
-saveRDS(h5_logit_models,  "results/h5_logit_models.rds")
-saveRDS(h5_hurdle_models, "results/h5_hurdle_models.rds")
-saveRDS(h6_logit_models,  "results/h6_logit_models.rds")
+# ==============================================================================
+# 4. VIF Diagnostics ----
+# ==============================================================================
+h5_vif <- lapply(setNames(names(h5_logit_models), names(h5_logit_models)),
+                 function(nm) safe_vif(h5_logit_models[[nm]], nm))
+h5h_vif <- lapply(setNames(names(h5_hurdle_models), names(h5_hurdle_models)),
+                  function(nm) safe_vif(h5_hurdle_models[[nm]], nm))
+h6_vif <- lapply(setNames(names(h6_logit_models), names(h6_logit_models)),
+                 function(nm) safe_vif(h6_logit_models[[nm]], nm))
 
-rm(h56_data, h56_vars, h5_logit_models, h5_hurdle_models, h6_logit_models)
+dir.create("results", showWarnings = FALSE)
+saveRDS(h5_logit_models, "results/h5_logit_models.rds")
+saveRDS(h5_hurdle_models, "results/h5_hurdle_models.rds")
+saveRDS(h6_logit_models, "results/h6_logit_models.rds")
+saveRDS(list(h5 = h5_vif, h5_hurdle = h5h_vif, h6 = h6_vif), "results/h56_vif.rds")
+
+rm(h56_data, h56_vars, h5_logit_models, h5_hurdle_models, h6_logit_models, h5_vif, h5h_vif, h6_vif)
 gc()
 message("[05_h5_h6_legitmix.R] Done. Models saved to results/")
