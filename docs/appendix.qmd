@@ -30,6 +30,83 @@ h8_init     <- readRDS(here::here("results", "h8_init_models.rds"))
 h8_target   <- readRDS(here::here("results", "h8_target_models.rds"))
 h8_robust   <- readRDS(here::here("results", "h8_robust_models.rds"))
 h9_survival <- readRDS(here::here("results", "h9_survival.rds"))
+
+# Universal coefficient extractor for any model type
+# Avoids summary() which crashes on brglmFit and incomplete lm objects
+extract_coefs <- function(model, model_name) {
+  if (is.null(model)) return(NULL)
+  tryCatch({
+    if (inherits(model, "logistf")) {
+      data.frame(
+        model = model_name,
+        term = names(coef(model)),
+        estimate = coef(model),
+        std.error = sqrt(diag(vcov(model))),
+        p.value = model$prob,
+        stringsAsFactors = FALSE, row.names = NULL
+      )
+    } else if (inherits(model, "coxph")) {
+      s <- summary(model)
+      data.frame(
+        model = model_name,
+        term = rownames(s$coefficients),
+        estimate = s$coefficients[, "coef"],
+        std.error = s$coefficients[, "se(coef)"],
+        p.value = s$coefficients[, "Pr(>|z|)"],
+        stringsAsFactors = FALSE, row.names = NULL
+      )
+    } else {
+      # glm, brglmFit, lm - use coef()/vcov() directly
+      beta <- coef(model)
+      v <- tryCatch(vcov(model), error = function(e) NULL)
+      if (is.null(v)) {
+        # If vcov fails, try to get SEs from model$coefficients matrix
+        se <- rep(NA_real_, length(beta))
+      } else {
+        se <- sqrt(diag(v))
+      }
+      z <- beta / se
+      pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+      data.frame(
+        model = model_name,
+        term = names(beta),
+        estimate = beta,
+        std.error = se,
+        p.value = pval,
+        stringsAsFactors = FALSE, row.names = NULL
+      )
+    }
+  }, error = function(e) {
+    message("Could not extract from ", model_name, ": ", e$message)
+    NULL
+  })
+}
+
+# Helper to build a kable comparison table from a named list of models
+build_model_table <- function(model_list, coef_labels = NULL) {
+  all_coefs <- do.call(rbind, Filter(Negate(is.null),
+    Map(extract_coefs, model_list, names(model_list))
+  ))
+  if (is.null(all_coefs) || nrow(all_coefs) == 0) {
+    message("No model coefficients could be extracted.")
+    return(invisible(NULL))
+  }
+  if (!is.null(coef_labels)) {
+    all_coefs <- all_coefs[all_coefs$term %in% names(coef_labels), ]
+    all_coefs$label <- coef_labels[all_coefs$term]
+  } else {
+    all_coefs$label <- all_coefs$term
+  }
+  all_coefs$stars <- ifelse(all_coefs$p.value < 0.001, "***",
+    ifelse(all_coefs$p.value < 0.01, "**",
+      ifelse(all_coefs$p.value < 0.05, "*", "")))
+  all_coefs$cell <- paste0(sprintf("%.3f", all_coefs$estimate),
+    all_coefs$stars, " (", sprintf("%.3f", all_coefs$std.error), ")")
+  wide <- reshape(all_coefs[, c("label", "model", "cell")],
+    idvar = "label", timevar = "model", direction = "wide")
+  names(wide) <- gsub("cell\\.", "", names(wide))
+  knitr::kable(wide, row.names = FALSE)
+}
 ```
 This appendix presents supplementary material, including descriptive statistics for all key variables, robustness checks with alternative model specifications, and additional interaction plots.
 
@@ -148,55 +225,14 @@ firth_h3 <- tryCatch(
   error = function(e) { message("Firth H3 failed: ", e$message); NULL }
 )
 
-# Helper to extract coefficients from different model types
-# Handles logistf, brglmFit, and standard glm objects
-extract_coefs <- function(model, model_name) {
-  if (is.null(model)) return(NULL)
-  tryCatch({
-    if (inherits(model, "logistf")) {
-      # logistf objects
-      data.frame(
-        model = model_name,
-        term = names(coef(model)),
-        estimate = coef(model),
-        std.error = sqrt(diag(vcov(model))),
-        p.value = model$prob,
-        stringsAsFactors = FALSE,
-        row.names = NULL
-      )
-    } else {
-      # glm / brglmFit - use coef() and vcov() directly to avoid summary() issues
-      beta <- coef(model)
-      se <- sqrt(diag(vcov(model)))
-      z <- beta / se
-      pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
-      data.frame(
-        model = model_name,
-        term = names(beta),
-        estimate = beta,
-        std.error = se,
-        p.value = pval,
-        stringsAsFactors = FALSE,
-        row.names = NULL
-      )
-    }
-  }, error = function(e) {
-    message("Could not extract coefficients from ", model_name, ": ", e$message)
-    NULL
-  })
-}
-
-# Extract from all available models
-all_coefs <- do.call(rbind, Filter(Negate(is.null), list(
-  extract_coefs(firth_h1, "H1 (Firth)"),
-  extract_coefs(h1_models$h1_full, "H1 (Logit)"),
-  extract_coefs(firth_h3, "H3 (Firth)"),
-  extract_coefs(h3_models$h3_full, "H3 (Logit)")
-)))
-
-if (!is.null(all_coefs) && nrow(all_coefs) > 0) {
-  # Label mapping
-  label_map <- c(
+build_model_table(
+  list(
+    "H1 (Firth)" = firth_h1,
+    "H1 (Logit)" = h1_models$h1_full,
+    "H3 (Firth)" = firth_h3,
+    "H3 (Logit)" = h3_models$h3_full
+  ),
+  coef_labels = c(
     sidea_revisionist_domestic = "Revisionist Ideology",
     legit_ratio = "Legitimation Ratio",
     log_cinc_a = "Log CINC (A)",
@@ -205,23 +241,7 @@ if (!is.null(all_coefs) && nrow(all_coefs) > 0) {
     cold_war = "Cold War",
     t = "Peace Years"
   )
-  # Filter to key terms and add labels
-  key_terms <- names(label_map)
-  tbl <- all_coefs[all_coefs$term %in% key_terms, ]
-  tbl$label <- label_map[tbl$term]
-  tbl$stars <- ifelse(tbl$p.value < 0.001, "***",
-    ifelse(tbl$p.value < 0.01, "**",
-      ifelse(tbl$p.value < 0.05, "*", "")))
-  tbl$cell <- paste0(sprintf("%.3f", tbl$estimate), tbl$stars,
-    " (", sprintf("%.3f", tbl$std.error), ")")
-  # Pivot to wide format
-  wide <- reshape(tbl[, c("label", "model", "cell")],
-    idvar = "label", timevar = "model", direction = "wide")
-  names(wide) <- gsub("cell\\.", "", names(wide))
-  knitr::kable(wide, row.names = FALSE)
-} else {
-  message("Firth models failed due to matrix singularity. Skipping rare events table.")
-}
+)
 ```
 
 ## A.4 Robustness: H8 Moderation with Alternative Interactions
@@ -229,19 +249,12 @@ if (!is.null(all_coefs) && nrow(all_coefs) > 0) {
 ```{r}
 #| label: tbl-h8-robust
 #| tbl-cap: "H8 Robustness: Alternative Interaction Models (LPM)"
-#| results: asis
-stargazer(
-  h8_robust$h8_wcoal_int,
-  h8_robust$h8_milsupp_int,
-  h8_robust$h8_coldwar_int,
-  type = "html",
-  title = "H8 Robustness: Alternative Interaction Models",
-  dep.var.labels = "Targets Democracy (LPM)",
-  column.labels = c("W. Coalition", "Mil. Support", "Cold War"),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll"),
-  notes = c("Sample: Autocratic MID initiators only.",
-    "*** p<0.001, ** p<0.01, * p<0.05")
+build_model_table(
+  list(
+    "W. Coalition" = h8_robust$h8_wcoal_int,
+    "Mil. Support" = h8_robust$h8_milsupp_int,
+    "Cold War" = h8_robust$h8_coldwar_int
+  )
 )
 ```
 
@@ -250,28 +263,22 @@ stargazer(
 ```{r}
 #| label: tbl-h9-robust
 #| tbl-cap: "H9 Robustness: Full Cox PH Model and Interaction Specifications"
-#| results: asis
-stargazer(
-  h9_survival$cox_h9_full,
-  h9_survival$cox_h9_int_ideology,
-  h9_survival$cox_h9_int_ratio,
-  type = "html",
-  title = "H9 Robustness: Additional Cox PH Specifications",
-  dep.var.labels = "Hazard of Leader Removal",
-  column.labels = c("Full Model", "Int. Ideology", "Int. Ratio"),
-  covariate.labels = c(
-    "Conflict vs. Ideo. Target",
-    "Conflict vs. Democracy",
-    "Avg. Ideo. Legitimation",
-    "Legitimation Ratio",
-    "Conflict × Ideo. Legit.",
-    "Conflict × Legit. Ratio",
-    "Autocracy Level",
-    "Log GDP", "Log Pop",
-    "Irregular Entry"
+build_model_table(
+  list(
+    "Full Model" = h9_survival$cox_h9_full,
+    "Int. Ideology" = h9_survival$cox_h9_int_ideology,
+    "Int. Ratio" = h9_survival$cox_h9_int_ratio
   ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll")
+  coef_labels = c(
+    conflicts_vs_ideo_targets = "Conflict vs. Ideo. Target",
+    conflicts_vs_democracy = "Conflict vs. Democracy",
+    avg_ideological_legit = "Avg. Ideo. Legitimation",
+    legit_ratio = "Legitimation Ratio",
+    avg_autocracy_level = "Autocracy Level",
+    log_avg_gdp = "Log GDP",
+    log_avg_pop = "Log Pop",
+    irregular_entry = "Irregular Entry"
+  )
 )
 ```
 
