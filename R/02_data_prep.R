@@ -49,7 +49,7 @@ prep_dyad <- function(df) {
     mutate(
       conflict_year = if_else(mid_initiated == 1, year, NA_integer_),
       last_conflict = cummax(if_else(is.na(conflict_year), 0, conflict_year)),
-      peace_years = if_else(last_conflict == 0, 35, year - last_conflict),
+      peace_years   = if_else(last_conflict == 0, 35, year - last_conflict),
       t  = peace_years,
       t2 = t^2,
       t3 = t^3
@@ -70,8 +70,8 @@ prep_monadic <- function(dyad_df) {
       targets_democracy = as.integer(any(v2x_libdem_b >= 0.5, na.rm = TRUE)),
 
       # Conflict counts for survival models (H9)
-      n_mids            = sum(hihosta >= 2, na.rm = TRUE),
-      n_vs_democracy    = sum(hihosta >= 2 & v2x_libdem_b >= 0.5, na.rm = TRUE),
+      n_mids          = sum(hihosta >= 2, na.rm = TRUE),
+      n_vs_democracy  = sum(hihosta >= 2 & v2x_libdem_b >= 0.5, na.rm = TRUE),
 
       # Side A attributes (take first non-NA, all should be same within country-year)
       v2exl_legitideol_a = first(v2exl_legitideol_a),
@@ -83,7 +83,7 @@ prep_monadic <- function(dyad_df) {
       # GRAVE-D variables
       sidea_revisionist_domestic    = first(sidea_revisionist_domestic),
       sidea_dynamic_leader          = first(sidea_dynamic_leader),
-      sidea_winning_coalition_size   = first(sidea_winning_coalition_size),
+      sidea_winning_coalition_size  = first(sidea_winning_coalition_size),
       sidea_military_support        = first(sidea_military_support),
 
       # Survival / leader variables from GRAVE-D
@@ -93,16 +93,16 @@ prep_monadic <- function(dyad_df) {
       posttenurefate      = first(posttenurefate),
 
       # Economic / population controls
-      flgdpen  = first(flgdpen),
-      tpop     = first(tpop),
-      epop_a   = first(epop_a),
-
+      flgdpen = first(flgdpen),
+      tpop    = first(tpop),
+      epop_a  = first(epop_a),
       .groups = "drop"
     ) %>%
     rename(COWcode = COWcode_a) %>%
     mutate(
       # Legitimation mix (monadic)
-      legit_ratio = v2exl_legitideol_a / (v2exl_legitideol_a + v2exl_legitperf_a + v2exl_legitlead_a + 0.01),
+      legit_ratio = v2exl_legitideol_a /
+        (v2exl_legitideol_a + v2exl_legitperf_a + v2exl_legitlead_a + 0.01),
 
       # Survival variables (H9)
       tenure_years    = tenure,
@@ -117,15 +117,16 @@ prep_monadic <- function(dyad_df) {
       # Averaged controls for H9
       avg_ideological_legit = v2exl_legitideol_a,
       avg_autocracy_level   = 1 - v2x_libdem_a,
-      log_avg_gdp           = log(flgdpen + 1),
-      log_avg_pop           = log(ifelse(!is.na(epop_a), epop_a,
-                                         ifelse(!is.na(tpop), tpop, NA)) + 1),
+      log_avg_gdp = log(flgdpen + 1),
+      log_avg_pop = log(ifelse(!is.na(epop_a), epop_a,
+                               ifelse(!is.na(tpop), tpop, NA)) + 1),
 
       # Controls
-      log_cinc  = log(cinc_a + 0.0001),
-      cold_war  = as.integer(year >= 1947 & year <= 1991),
+      log_cinc = log(cinc_a + 0.0001),
+      cold_war = as.integer(year >= 1947 & year <= 1991),
+
       # M1/M2 mediation variables
-      log_tenure = log(tenure + 1),
+      log_tenure      = log(tenure + 1),
       avg_other_legit = v2exl_legitperf_a + v2exl_legitlead_a
     ) %>%
     # Peace years logic
@@ -146,20 +147,93 @@ monadic_ready <- prep_monadic(dyad_df)
 
 # 4. Save Ready Data (Internal Use) ----
 dir.create("ready_data", showWarnings = FALSE)
-saveRDS(dyad_ready, "ready_data/dyad_ready.rds")
+saveRDS(dyad_ready,    "ready_data/dyad_ready.rds")
 saveRDS(monadic_ready, "ready_data/monadic_ready.rds")
 message("Data preparation complete. Ready files saved to ready_data/")
 
-  # Also cache to results/ for Quarto rendering (avoids reloading full pipeline)
+# Also cache to results/ for Quarto rendering (avoids reloading full pipeline)
 dir.create(here::here("results"), showWarnings = FALSE)
-saveRDS(dyad_ready, here::here("results", "dyad_ready.rds"))
-    saveRDS(monadic_ready, here::here("results", "monadic_ready.rds"))
+saveRDS(dyad_ready,    here::here("results", "dyad_ready.rds"))
+saveRDS(monadic_ready, here::here("results", "monadic_ready.rds"))
 
-# 5. Memory Cleanup ----
+# 5. Memory Cleanup (pre-subset) ----
 rm(dyad_df, prep_dyad, prep_monadic)
 gc()
+
 message(sprintf("[02] Cleanup done. dyad_ready: %s, monadic_ready: %s",
                 format(object.size(dyad_ready), units = "MB"),
                 format(object.size(monadic_ready), units = "MB")))
 
 } # end guard
+
+# ==============================================================================
+# 6. Subset to model-used variables only ----
+# Reduces memory footprint by dropping columns not referenced in any formula.
+# Identifying columns (dyad, year, country codes) are retained for merging.
+# ==============================================================================
+
+# --- dyad_ready: keep IDs + all variables used across 03-08 scripts -----------
+dyad_keep <- c(
+  # Identifiers
+  "dyad", "year", "COWcode_a", "COWcode_b", "ccode1", "ccode2",
+  "statea", "stateb",
+  # Outcomes
+  "mid_initiated", "targets_democracy",
+  # H1 IVs (leader ideology composite + sub-types)
+  "sidea_revisionist_domestic",
+  "sidea_religious_revisionist_domestic",
+  "sidea_socialist_revisionist_domestic",
+  "sidea_nationalist_revisionist_domestic",
+  "sidea_reactionary_revisionist_domestic",
+  "sidea_separatist_revisionist_domestic",
+  # H3/H4 IVs (support group variables)
+  "sidea_religious_support", "sidea_party_elite_support",
+  "sidea_rural_worker_support", "sidea_military_support",
+  "sidea_ethnic_racial_support",
+  # H5/H6 IVs (legitimation mix)
+  "legit_ratio", "legit_total",
+  "v2exl_legitideol_a", "v2exl_legitperf_a", "v2exl_legitlead_a",
+  # H8 IVs (moderation)
+  "sidea_dynamic_leader",
+  # Controls
+  "cinc_a", "log_cinc_a", "log_cinc_b",
+  "sidea_winning_coalition_size",
+  "cold_war", "t", "t2", "t3"
+)
+# Keep only columns that actually exist (some ID columns may vary by dataset)
+dyad_keep <- intersect(dyad_keep, names(dyad_ready))
+dyad_before <- ncol(dyad_ready)
+dyad_ready  <- dyad_ready[, dyad_keep, drop = FALSE]
+message(sprintf("[02] dyad_ready subset: %d -> %d columns (%s)",
+                dyad_before, ncol(dyad_ready),
+                format(object.size(dyad_ready), units = "MB")))
+
+# --- monadic_ready: keep IDs + all variables used in 05_m1_m2 / 06_h9 --------
+monadic_keep <- c(
+  # Identifiers
+  "COWcode", "year",
+  # Treatment / conflict variables
+  "conflicts_vs_ideo_targets", "conflicts_vs_democracy",
+  "conflicts_vs_ideo_opponent",
+  # Mediators
+  "avg_ideological_legit", "legit_ratio", "avg_other_legit",
+  # Outcomes
+  "log_tenure", "tenure_years", "survived_to_end",
+  # Controls
+  "avg_autocracy_level", "log_avg_gdp", "log_avg_pop",
+  "irregular_entry"
+)
+monadic_keep   <- intersect(monadic_keep, names(monadic_ready))
+monadic_before <- ncol(monadic_ready)
+monadic_ready  <- monadic_ready[, monadic_keep, drop = FALSE]
+message(sprintf("[02] monadic_ready subset: %d -> %d columns (%s)",
+                monadic_before, ncol(monadic_ready),
+                format(object.size(monadic_ready), units = "MB")))
+
+# ==============================================================================
+# 7. Final environment cleanup ----
+# Remove all leftover objects except the two analysis-ready dataframes.
+# ==============================================================================
+rm(list = setdiff(ls(), c("dyad_ready", "monadic_ready")))
+gc()
+message("[02_data_prep.R] Done. Environment contains only dyad_ready and monadic_ready.")
