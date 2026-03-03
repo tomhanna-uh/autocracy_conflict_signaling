@@ -4,8 +4,8 @@
 # Uses: glm (logit), lm (LPM with interaction), sjPlot, marginaleffects
 # ==============================================================================
 
-source("R/00_packages.R")
-source("R/02_data_prep.R")
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "02_data_prep.R"))
 
 # ------------------------------------------------------------------------------
 # Memory: subset dyad_ready to needed columns
