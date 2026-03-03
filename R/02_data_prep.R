@@ -153,6 +153,7 @@ message("Data preparation complete. Ready files saved to ready_data/")
   # Also cache to results/ for Quarto rendering (avoids reloading full pipeline)
 dir.create(here::here("results"), showWarnings = FALSE)
 saveRDS(dyad_ready, here::here("results", "dyad_ready.rds"))
+    saveRDS(monadic_ready, here::here("results", "monadic_ready.rds"))
 
 # 5. Memory Cleanup ----
 rm(dyad_df, prep_dyad, prep_monadic)
