@@ -5,7 +5,7 @@
 # Tier 4: Reporting and Visualization
 # ==============================================================================
 # Load required scripts
-source("R/00_packages.R")
+source(here::here("R", "00_packages.R"))
 # Note: This script assumes all previous model scripts have been run and their
 # .rds outputs are available in the results/ folder.
 # ==============================================================================
