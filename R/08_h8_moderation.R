@@ -46,7 +46,7 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs =
   }
   if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
     fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit,
-              control = list(maxit = 300, epsilon = 1e-6)),
+                        control = list(maxit = 300, epsilon = 1e-6)),
                     error = function(e) NULL)
     if (!is.null(fit)) return(strip_glm(fit))
   }
@@ -66,6 +66,21 @@ safe_lm <- function(formula, data, min_obs = 30) {
   fit <- tryCatch(lm(formula, data = data),
                   error = function(e) { warning(sprintf("[08] lm failed: %s", e$message)); NULL })
   strip_glm(fit)  # works for lm too
+}
+
+# ==============================================================================
+# Helper: safe VIF
+# ==============================================================================
+safe_vif <- function(model, label = deparse(substitute(model))) {
+  tryCatch({
+    v <- car::vif(model)
+    if (is.matrix(v)) v <- v[, "GVIF"]
+    message(sprintf("[08] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
+    v
+  }, error = function(e) {
+    message(sprintf("[08] VIF failed for %s: %s", label, e$message))
+    NULL
+  })
 }
 
 # ==============================================================================
@@ -172,11 +187,24 @@ h8_target <- estimate_h8_targeting(h8_data)
 h8_robust <- estimate_h8_robustness(h8_data)
 h8_plots  <- plot_h8_interactions(h8_init, h8_target)
 
+# ==============================================================================
+# 6. VIF Diagnostics ----
+# ==============================================================================
+h8_init_vif <- lapply(setNames(names(h8_init), names(h8_init)),
+                      function(nm) safe_vif(h8_init[[nm]], nm))
+h8_target_vif <- lapply(setNames(names(h8_target), names(h8_target)),
+                        function(nm) safe_vif(h8_target[[nm]], nm))
+h8_robust_vif <- lapply(setNames(names(h8_robust), names(h8_robust)),
+                        function(nm) safe_vif(h8_robust[[nm]], nm))
+
 dir.create("results", showWarnings = FALSE)
 saveRDS(h8_init,   "results/h8_init_models.rds")
 saveRDS(h8_target, "results/h8_target_models.rds")
 saveRDS(h8_robust, "results/h8_robust_models.rds")
+saveRDS(list(init = h8_init_vif, target = h8_target_vif, robust = h8_robust_vif),
+        "results/h8_vif.rds")
 
-rm(h8_data, h8_vars, h8_init, h8_target, h8_robust, h8_plots)
+rm(h8_data, h8_vars, h8_init, h8_target, h8_robust, h8_plots,
+   h8_init_vif, h8_target_vif, h8_robust_vif)
 gc()
 message("[08_h8_moderation.R] Done. Models saved to results/")
