@@ -16,7 +16,58 @@ if (file.exists(dyad_ready_path)) {
 } else {
   message("dyad_ready.rds not found. Prediction plots will fail.")
 }
+
 h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
+
+# Universal coefficient extractor (avoids summary() which crashes on brglmFit)
+extract_coefs <- function(model, model_name) {
+  if (is.null(model)) return(NULL)
+  tryCatch({
+    if (inherits(model, "logistf")) {
+      data.frame(model = model_name, term = names(coef(model)),
+                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+    } else if (inherits(model, "coxph")) {
+      s <- summary(model)
+      data.frame(model = model_name, term = rownames(s$coefficients),
+                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+    } else {
+      beta <- coef(model)
+      v <- tryCatch(vcov(model), error = function(e) NULL)
+      se <- if (is.null(v)) rep(NA_real_, length(beta)) else sqrt(diag(v))
+      z <- beta / se
+      pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+      data.frame(model = model_name, term = names(beta),
+                 estimate = beta, std.error = se, p.value = pval,
+                 stringsAsFactors = FALSE, row.names = NULL)
+    }
+  }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
+}
+
+build_model_table <- function(model_list, coef_labels = NULL) {
+  all_coefs <- do.call(rbind, Filter(Negate(is.null),
+    Map(extract_coefs, model_list, names(model_list))))
+  if (is.null(all_coefs) || nrow(all_coefs) == 0) {
+    message("No model coefficients could be extracted.")
+    return(invisible(NULL))
+  }
+  if (!is.null(coef_labels)) {
+    all_coefs <- all_coefs[all_coefs$term %in% names(coef_labels), ]
+    all_coefs$label <- coef_labels[all_coefs$term]
+  } else {
+    all_coefs$label <- all_coefs$term
+  }
+  all_coefs$stars <- ifelse(all_coefs$p.value < 0.001, "***",
+    ifelse(all_coefs$p.value < 0.01, "**",
+    ifelse(all_coefs$p.value < 0.05, "*", "")))
+  all_coefs$cell <- paste0(sprintf("%.3f", all_coefs$estimate),
+    all_coefs$stars, " (", sprintf("%.3f", all_coefs$std.error), ")")
+  wide <- reshape(all_coefs[, c("label", "model", "cell")],
+    idvar = "label", timevar = "model", direction = "wide")
+  names(wide) <- gsub("cell\\.", "", names(wide))
+  knitr::kable(wide, row.names = FALSE)
+}
 ```
 
 This chapter presents results for Tier 2 hypotheses, which examine how the relative dependence on ideological legitimation—measured as a ratio of ideological to total legitimation score (`legit_ratio`)—shapes both conflict initiation and target selection. Models include standard logistic regressions and two-part hurdle models. All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
@@ -28,54 +79,24 @@ This chapter presents results for Tier 2 hypotheses, which examine how the relat
 ```{r}
 #| label: tbl-h5-logit
 #| tbl-cap: "H5: Legitimation Mix and Conflict Initiation (Logistic Regression)"
-#| results: asis
-stargazer(
-  h5_logit_models$h5_baseline,
-  h5_logit_models$h5_components,
-  h5_logit_models$h5_controls,
-  h5_logit_models$h5_full,
-  type = "html",
-  title = "H5: Legitimation Mix and Conflict Initiation",
-  dep.var.labels = "MID Initiated",
-  column.labels = c("(1) Baseline", "(2) +Components", "(3) +Controls", "(4) Full"),
-  covariate.labels = c(
-    "Legitimation Ratio",
-    "Perf. Legitimation", "Personal. Legitimation",
-    "Targets Democracy",
-    "CINC (A)", "Winning Coalition",
-    "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
-    "Peace Years (t\\textsuperscript{3})", "Cold War"
-  ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll"),
-  notes = c("Sample: Autocratic dyad-years, 1946\u20132010.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+build_model_table(
+  list(
+    "(1) Baseline" = h5_logit_models$h5_baseline,
+    "(2) +Components" = h5_logit_models$h5_components,
+    "(3) +Controls" = h5_logit_models$h5_controls,
+    "(4) Full" = h5_logit_models$h5_full
+  )
 )
 ```
 
 ```{r}
 #| label: tbl-h5-hurdle
 #| tbl-cap: "H5: Hurdle Model — Binary and Count Parts"
-#| results: asis
-stargazer(
-  h5_hurdle_models$hurdle_binary,
-  h5_hurdle_models$hurdle_count,
-  type = "html",
-  title = "H5: Two-Part Hurdle Model (Initiation)",
-  dep.var.labels = c("Any MID (Logit)", "MID Count (Poisson)"),
-  column.labels = c("Part 1: Binary", "Part 2: Count"),
-  covariate.labels = c(
-    "Legitimation Ratio",
-    "Perf. Legitimation", "Personal. Legitimation",
-    "Targets Democracy",
-    "CINC (A)", "Winning Coalition",
-    "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
-    "Peace Years (t\\textsuperscript{3})", "Cold War"
-  ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll"),
-  notes = c("Part 2 estimated on MID initiators only.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+build_model_table(
+  list(
+    "Part 1: Binary" = h5_hurdle_models$hurdle_binary,
+    "Part 2: Count" = h5_hurdle_models$hurdle_count
+  )
 )
 ```
 
@@ -109,7 +130,7 @@ pred_h5 <- pred_h5 %>%
             type = "link", se.fit = TRUE) %>%
       as.data.frame() %>%
       transmute(
-        fit   = plogis(fit),
+        fit = plogis(fit),
         lower = plogis(fit - 1.96 * se.fit),
         upper = plogis(fit + 1.96 * se.fit)
       )
@@ -133,30 +154,14 @@ ggplot(pred_h5, aes(x = legit_ratio, y = fit)) +
 ```{r}
 #| label: tbl-h6
 #| tbl-cap: "H6: Legitimation Mix and Democracy Targeting (Initiators Only)"
-#| results: asis
-stargazer(
-  h6_logit_models$h6_baseline,
-  h6_logit_models$h6_components,
-  h6_logit_models$h6_controls,
-  h6_logit_models$h6_full,
-  h6_logit_models$h6_interaction,
-  type = "html",
-  title = "H6: Legitimation Mix and Democracy Targeting",
-  dep.var.labels = "Target is Democracy",
-  column.labels = c("(1) Baseline", "(2) +Components", "(3) +Controls",
-                     "(4) Full", "(5) Interaction"),
-  covariate.labels = c(
-    "Legitimation Ratio",
-    "Perf. Legitimation", "Personal. Legitimation",
-    "CINC (A)", "Winning Coalition",
-    "Peace Years (t)", "Cold War",
-    "Revisionist Ideology",
-    "Legit. Ratio × Rev. Ideology"
-  ),
-  star.cutoffs = c(0.05, 0.01, 0.001),
-  omit.stat = c("aic", "ll"),
-  notes = c("Sample: Autocratic MID initiators only.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+build_model_table(
+  list(
+    "(1) Baseline" = h6_logit_models$h6_baseline,
+    "(2) +Components" = h6_logit_models$h6_components,
+    "(3) +Controls" = h6_logit_models$h6_controls,
+    "(4) Full" = h6_logit_models$h6_full,
+    "(5) Interaction" = h6_logit_models$h6_interaction
+  )
 )
 ```
 
@@ -191,7 +196,7 @@ pred_h6 <- pred_h6 %>%
             type = "link", se.fit = TRUE) %>%
       as.data.frame() %>%
       transmute(
-        fit   = plogis(fit),
+        fit = plogis(fit),
         lower = plogis(fit - 1.96 * se.fit),
         upper = plogis(fit + 1.96 * se.fit)
       )
@@ -215,22 +220,11 @@ ggplot(pred_h6, aes(x = legit_ratio, y = fit)) +
 ```{r}
 #| label: tbl-tier2-summary
 #| tbl-cap: "Tier 2 Summary: Legitimation Ratio Estimates (H5–H6 Full Models)"
-modelsummary(
+build_model_table(
   list(
-    "H5: Initiation"  = h5_logit_models$h5_full,
-    "H6: Targeting"    = h6_logit_models$h6_full,
-    "H6: Interaction"  = h6_logit_models$h6_interaction
-  ),
-  coef_map = c(
-    legit_ratio = "Legitimation Ratio",
-    v2exl_legitperf_a = "Perf. Legitimation",
-    v2exl_legitlead_a = "Personal. Legitimation",
-    sidea_revisionist_domestic = "Revisionist Ideology",
-    `legit_ratio:sidea_revisionist_domestic` = "Legit. Ratio × Rev. Ideology",
-    sidea_winning_coalition_size = "Winning Coalition",
-    cold_war = "Cold War"
-  ),
-  stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
-  gof_omit = "AIC|BIC|Log"
+    "H5: Initiation" = h5_logit_models$h5_full,
+    "H6: Targeting" = h6_logit_models$h6_full,
+    "H6: Interaction" = h6_logit_models$h6_interaction
+  )
 )
 ```
