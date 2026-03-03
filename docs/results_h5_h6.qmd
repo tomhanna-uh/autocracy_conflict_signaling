@@ -22,7 +22,12 @@ h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
 # Safe vcov that bypasses summary.brglmFit (which crashes on mu.eta)
 safe_vcov <- function(model) {
   if (inherits(model, "brglmFit") && !is.null(model$Fisher.info)) {
-    return(solve(model$Fisher.info))
+    V <- solve(model$Fisher.info)
+    nms <- names(coef(model))
+    if (nrow(V) == length(nms)) {
+      rownames(V) <- colnames(V) <- nms
+    }
+    return(V)
   }
   if (inherits(model, "glm") && !is.null(model$qr)) {
     p <- model$rank
@@ -95,7 +100,11 @@ safe_predict <- function(model, newdata) {
   V <- safe_vcov(model)
   mf <- model.frame(delete.response(terms(model)), data = newdata)
   X <- model.matrix(delete.response(terms(model)), data = mf)
-  X <- X[, names(beta), drop = FALSE]
+  # Align X columns and V to match beta names
+  keep <- intersect(names(beta), colnames(X))
+  beta <- beta[keep]
+  X <- X[, keep, drop = FALSE]
+  V <- V[keep, keep, drop = FALSE]
   eta <- as.numeric(X %*% beta)
   se_eta <- sqrt(rowSums((X %*% V) * X))
   data.frame(
