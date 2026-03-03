@@ -31,7 +31,6 @@ h8_target   <- readRDS(here::here("results", "h8_target_models.rds"))
 h8_robust   <- readRDS(here::here("results", "h8_robust_models.rds"))
 h9_survival <- readRDS(here::here("results", "h9_survival.rds"))
 ```
-
 This appendix presents supplementary material, including descriptive statistics for all key variables, robustness checks with alternative model specifications, and additional interaction plots.
 
 ## A.1 Descriptive Statistics
@@ -56,7 +55,6 @@ key_vars <- dyad_ready %>%
     sidea_dynamic_leader,
     cold_war
   )
-
 datasummary_skim(
   key_vars,
   type = "numeric",
@@ -81,7 +79,6 @@ if (exists("monadic_ready")) {
       log_avg_gdp,
       irregular_entry
     )
-
   datasummary_skim(
     mono_vars,
     type = "numeric",
@@ -97,7 +94,6 @@ if (exists("monadic_ready")) {
 #| label: fig-corr
 #| fig-cap: "Correlation matrix of key explanatory variables"
 library(ggcorrplot)
-
 corr_data <- dyad_ready %>%
   dplyr::select(
     sidea_revisionist_domestic,
@@ -152,27 +148,67 @@ firth_h3 <- tryCatch(
   error = function(e) { message("Firth H3 failed: ", e$message); NULL }
 )
 
-# Build model list, dropping any that failed
-rare_models <- Filter(Negate(is.null), list(
-  "H1 (Firth)" = firth_h1,
-  "H1 (Logit)" = h1_models$h1_full,
-  "H3 (Firth)" = firth_h3,
-  "H3 (Logit)" = h3_models$h3_full
-))
-if (length(rare_models) > 0) {
-# Results compared to main logit estimates
-modelsummary(
-    rare_models,
-  coef_map = c(
+# Helper to extract coefficients from different model types
+extract_coefs <- function(model, model_name) {
+  if (is.null(model)) return(NULL)
+  if (inherits(model, "logistf")) {
+    s <- model
+    data.frame(
+      model = model_name,
+      term = names(coef(s)),
+      estimate = coef(s),
+      std.error = sqrt(diag(vcov(s))),
+      p.value = s$prob,
+      stringsAsFactors = FALSE,
+      row.names = NULL
+    )
+  } else {
+    s <- summary(model)
+    data.frame(
+      model = model_name,
+      term = rownames(coef(s)),
+      estimate = coef(s)[, 1],
+      std.error = coef(s)[, 2],
+      p.value = coef(s)[, 4],
+      stringsAsFactors = FALSE,
+      row.names = NULL
+    )
+  }
+}
+
+# Extract from all available models
+all_coefs <- do.call(rbind, Filter(Negate(is.null), list(
+  extract_coefs(firth_h1, "H1 (Firth)"),
+  extract_coefs(h1_models$h1_full, "H1 (Logit)"),
+  extract_coefs(firth_h3, "H3 (Firth)"),
+  extract_coefs(h3_models$h3_full, "H3 (Logit)")
+)))
+
+if (!is.null(all_coefs) && nrow(all_coefs) > 0) {
+  # Label mapping
+  label_map <- c(
     sidea_revisionist_domestic = "Revisionist Ideology",
     legit_ratio = "Legitimation Ratio",
     log_cinc_a = "Log CINC (A)",
+    log_cinc_b = "Log CINC (B)",
     sidea_winning_coalition_size = "Winning Coalition",
-    cold_war = "Cold War"
-  ),
-  stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
-  gof_omit = "AIC|BIC|Log"
-)
+    cold_war = "Cold War",
+    t = "Peace Years"
+  )
+  # Filter to key terms and add labels
+  key_terms <- names(label_map)
+  tbl <- all_coefs[all_coefs$term %in% key_terms, ]
+  tbl$label <- label_map[tbl$term]
+  tbl$stars <- ifelse(tbl$p.value < 0.001, "***",
+    ifelse(tbl$p.value < 0.01, "**",
+      ifelse(tbl$p.value < 0.05, "*", "")))
+  tbl$cell <- paste0(sprintf("%.3f", tbl$estimate), tbl$stars,
+    " (", sprintf("%.3f", tbl$std.error), ")")
+  # Pivot to wide format
+  wide <- reshape(tbl[, c("label", "model", "cell")],
+    idvar = "label", timevar = "model", direction = "wide")
+  names(wide) <- gsub("cell\\.", "", names(wide))
+  knitr::kable(wide, row.names = FALSE)
 } else {
   message("Firth models failed due to matrix singularity. Skipping rare events table.")
 }
@@ -195,7 +231,7 @@ stargazer(
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll"),
   notes = c("Sample: Autocratic MID initiators only.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+    "*** p<0.001, ** p<0.01, * p<0.05")
 )
 ```
 
