@@ -68,9 +68,27 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   names(wide) <- gsub("cell\\.", "", names(wide))
   knitr::kable(wide, row.names = FALSE)
 }
+
+# Safe prediction function that avoids summary() crash on brglmFit
+safe_predict <- function(model, newdata) {
+  beta <- coef(model)
+  V <- vcov(model)
+  ff <- formula(model)
+  mf <- model.frame(delete.response(terms(model)), data = newdata)
+  X <- model.matrix(delete.response(terms(model)), data = mf)
+  # Keep only columns matching coefficient names
+  X <- X[, names(beta), drop = FALSE]
+  eta <- as.numeric(X %*% beta)
+  se_eta <- sqrt(rowSums((X %*% V) * X))
+  data.frame(
+    fit = plogis(eta),
+    lower = plogis(eta - 1.96 * se_eta),
+    upper = plogis(eta + 1.96 * se_eta)
+  )
+}
 ```
 
-This chapter presents results for Tier 2 hypotheses, which examine how the relative dependence on ideological legitimation—measured as a ratio of ideological to total legitimation score (`legit_ratio`)—shapes both conflict initiation and target selection. Models include standard logistic regressions and two-part hurdle models. All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
+This chapter presents results for Tier 2 hypotheses, which examine how the relative dependence on ideological legitimation---measured as a ratio of ideological to total legitimation score (`legit_ratio`)---shapes both conflict initiation and target selection. Models include standard logistic regressions and two-part hurdle models. All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
 
 ## H5: Legitimation Mix and Conflict Initiation
 
@@ -91,7 +109,7 @@ build_model_table(
 
 ```{r}
 #| label: tbl-h5-hurdle
-#| tbl-cap: "H5: Hurdle Model — Binary and Count Parts"
+#| tbl-cap: "H5: Hurdle Model --- Binary and Count Parts"
 build_model_table(
   list(
     "Part 1: Binary" = h5_hurdle_models$hurdle_binary,
@@ -116,25 +134,14 @@ pred_h5 <- data.frame(
     v2exl_legitperf_a = mean(dyad_ready$v2exl_legitperf_a, na.rm = TRUE),
     v2exl_legitlead_a = mean(dyad_ready$v2exl_legitlead_a, na.rm = TRUE),
     targets_democracy = 0,
-    cinc_a = mean(
-      dyad_ready$cinc_a, na.rm = TRUE),
-    sidea_winning_coalition_size = mean(
-      dyad_ready$sidea_winning_coalition_size, na.rm = TRUE),
+    cinc_a = mean(dyad_ready$cinc_a, na.rm = TRUE),
+    sidea_winning_coalition_size = mean(dyad_ready$sidea_winning_coalition_size, na.rm = TRUE),
     cold_war = 0,
     t = 0, t2 = 0, t3 = 0
   )
 
 pred_h5 <- pred_h5 %>%
-  bind_cols(
-    predict(h5_logit_models$h5_full, newdata = pred_h5,
-            type = "link", se.fit = TRUE) %>%
-      as.data.frame() %>%
-      transmute(
-        fit = plogis(fit),
-        lower = plogis(fit - 1.96 * se.fit),
-        upper = plogis(fit + 1.96 * se.fit)
-      )
-  )
+  bind_cols(safe_predict(h5_logit_models$h5_full, pred_h5))
 
 ggplot(pred_h5, aes(x = legit_ratio, y = fit)) +
   geom_line(color = "#0072B2", linewidth = 1.2) +
@@ -182,25 +189,14 @@ pred_h6 <- data.frame(
   mutate(
     v2exl_legitperf_a = mean(conflict_data$v2exl_legitperf_a, na.rm = TRUE),
     v2exl_legitlead_a = mean(conflict_data$v2exl_legitlead_a, na.rm = TRUE),
-    cinc_a = mean(
-      conflict_data$cinc_a, na.rm = TRUE),
-    sidea_winning_coalition_size = mean(
-      conflict_data$sidea_winning_coalition_size, na.rm = TRUE),
+    cinc_a = mean(conflict_data$cinc_a, na.rm = TRUE),
+    sidea_winning_coalition_size = mean(conflict_data$sidea_winning_coalition_size, na.rm = TRUE),
     cold_war = 0,
     t = 0
   )
 
 pred_h6 <- pred_h6 %>%
-  bind_cols(
-    predict(h6_logit_models$h6_full, newdata = pred_h6,
-            type = "link", se.fit = TRUE) %>%
-      as.data.frame() %>%
-      transmute(
-        fit = plogis(fit),
-        lower = plogis(fit - 1.96 * se.fit),
-        upper = plogis(fit + 1.96 * se.fit)
-      )
-  )
+  bind_cols(safe_predict(h6_logit_models$h6_full, pred_h6))
 
 ggplot(pred_h6, aes(x = legit_ratio, y = fit)) +
   geom_line(color = "#009E73", linewidth = 1.2) +
@@ -219,7 +215,7 @@ ggplot(pred_h6, aes(x = legit_ratio, y = fit)) +
 
 ```{r}
 #| label: tbl-tier2-summary
-#| tbl-cap: "Tier 2 Summary: Legitimation Ratio Estimates (H5–H6 Full Models)"
+#| tbl-cap: "Tier 2 Summary: Legitimation Ratio Estimates (H5--H6 Full Models)"
 build_model_table(
   list(
     "H5: Initiation" = h5_logit_models$h5_full,
