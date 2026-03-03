@@ -12,7 +12,27 @@ h8_init      <- readRDS(here::here("results", "h8_init_models.rds"))
 h8_target    <- readRDS(here::here("results", "h8_target_models.rds"))
 h9_survival  <- readRDS(here::here("results", "h9_survival.rds"))
 
-# Universal coefficient extractor (avoids summary() which crashes on brglmFit)
+# Safe vcov that bypasses summary.brglmFit (which crashes on mu.eta)
+safe_vcov <- function(model) {
+  if (inherits(model, "brglmFit") && !is.null(model$Fisher.info)) {
+    return(solve(model$Fisher.info))
+  }
+  if (inherits(model, "glm") && !is.null(model$qr)) {
+    p <- model$rank
+    p1 <- seq_len(p)
+    R <- qr.R(model$qr)[p1, p1, drop = FALSE]
+    Rinv <- backsolve(R, diag(p))
+    dispersion <- if (model$family$family %in% c("binomial", "poisson")) 1 else {
+      sum(model$weights * model$residuals^2) / model$df.residual
+    }
+    V <- dispersion * tcrossprod(Rinv)
+    rownames(V) <- colnames(V) <- names(coef(model))[p1]
+    return(V)
+  }
+  stats::vcov(model)
+}
+
+# Universal coefficient extractor
 extract_coefs <- function(model, model_name) {
   if (is.null(model)) return(NULL)
   tryCatch({
@@ -27,7 +47,7 @@ extract_coefs <- function(model, model_name) {
                  p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
-      v <- tryCatch(vcov(model), error = function(e) NULL)
+      v <- tryCatch(safe_vcov(model), error = function(e) NULL)
       se <- if (is.null(v)) rep(NA_real_, length(beta)) else sqrt(diag(v))
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
@@ -65,7 +85,7 @@ build_model_table <- function(model_list, coef_labels = NULL) {
 
 This chapter presents results for Tier 3 hypotheses, which explore complex causal mechanisms: support group mediation (**H7**), dynamic leadership moderation (**H8**), and the survival benefits of ideological conflict (**H9**).
 
-## H7: Mediation — Support Groups
+## H7: Mediation --- Support Groups
 
 **H7** tests whether the effect of revisionist leadership ideology on targeting democracies is mediated by dependence on ideologically associated support groups. We use both the `mediation` package (Baron-Kenny bootstrap) and `lavaan` (Structural Equation Modeling).
 
@@ -98,7 +118,7 @@ The results indicate a significant Average Causal Mediation Effect (ACME) for re
 # Modelsummary or custom table for lavaan objects
 ```
 
-## H8: Moderation — Dynamic Leadership
+## H8: Moderation --- Dynamic Leadership
 
 **H8** (the Messianic Autocrat test) predicts that dynamic personal leadership qualities moderate (amplify) the effect of revisionist ideology on conflict. We test this using interaction terms in both logit and linear probability models (LPM).
 
