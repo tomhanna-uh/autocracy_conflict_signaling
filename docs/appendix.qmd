@@ -149,31 +149,41 @@ firth_h3 <- tryCatch(
 )
 
 # Helper to extract coefficients from different model types
+# Handles logistf, brglmFit, and standard glm objects
 extract_coefs <- function(model, model_name) {
   if (is.null(model)) return(NULL)
-  if (inherits(model, "logistf")) {
-    s <- model
-    data.frame(
-      model = model_name,
-      term = names(coef(s)),
-      estimate = coef(s),
-      std.error = sqrt(diag(vcov(s))),
-      p.value = s$prob,
-      stringsAsFactors = FALSE,
-      row.names = NULL
-    )
-  } else {
-    s <- summary(model)
-    data.frame(
-      model = model_name,
-      term = rownames(coef(s)),
-      estimate = coef(s)[, 1],
-      std.error = coef(s)[, 2],
-      p.value = coef(s)[, 4],
-      stringsAsFactors = FALSE,
-      row.names = NULL
-    )
-  }
+  tryCatch({
+    if (inherits(model, "logistf")) {
+      # logistf objects
+      data.frame(
+        model = model_name,
+        term = names(coef(model)),
+        estimate = coef(model),
+        std.error = sqrt(diag(vcov(model))),
+        p.value = model$prob,
+        stringsAsFactors = FALSE,
+        row.names = NULL
+      )
+    } else {
+      # glm / brglmFit - use coef() and vcov() directly to avoid summary() issues
+      beta <- coef(model)
+      se <- sqrt(diag(vcov(model)))
+      z <- beta / se
+      pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+      data.frame(
+        model = model_name,
+        term = names(beta),
+        estimate = beta,
+        std.error = se,
+        p.value = pval,
+        stringsAsFactors = FALSE,
+        row.names = NULL
+      )
+    }
+  }, error = function(e) {
+    message("Could not extract coefficients from ", model_name, ": ", e$message)
+    NULL
+  })
 }
 
 # Extract from all available models
