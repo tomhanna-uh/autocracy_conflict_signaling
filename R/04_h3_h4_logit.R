@@ -8,8 +8,8 @@
 # ==============================================================================
 
 # Load required scripts
-source("R/00_packages.R")
-source("R/02_data_prep.R")
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "02_data_prep.R"))
 
 # ------------------------------------------------------------------------------
 # Variable note:
