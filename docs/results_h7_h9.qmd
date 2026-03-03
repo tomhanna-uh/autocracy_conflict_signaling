@@ -15,7 +15,12 @@ h9_survival  <- readRDS(here::here("results", "h9_survival.rds"))
 # Safe vcov that bypasses summary.brglmFit (which crashes on mu.eta)
 safe_vcov <- function(model) {
   if (inherits(model, "brglmFit") && !is.null(model$Fisher.info)) {
-    return(solve(model$Fisher.info))
+    V <- solve(model$Fisher.info)
+    nms <- names(coef(model))
+    if (nrow(V) == length(nms)) {
+      rownames(V) <- colnames(V) <- nms
+    }
+    return(V)
   }
   if (inherits(model, "glm") && !is.null(model$qr)) {
     p <- model$rank
@@ -38,13 +43,13 @@ extract_coefs <- function(model, model_name) {
   tryCatch({
     if (inherits(model, "logistf")) {
       data.frame(model = model_name, term = names(coef(model)),
-                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
-                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+        estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+        p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
     } else if (inherits(model, "coxph")) {
       s <- summary(model)
       data.frame(model = model_name, term = rownames(s$coefficients),
-                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
-                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+        estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+        p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
       v <- tryCatch(safe_vcov(model), error = function(e) NULL)
@@ -52,8 +57,8 @@ extract_coefs <- function(model, model_name) {
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
       data.frame(model = model_name, term = names(beta),
-                 estimate = beta, std.error = se, p.value = pval,
-                 stringsAsFactors = FALSE, row.names = NULL)
+        estimate = beta, std.error = se, p.value = pval,
+        stringsAsFactors = FALSE, row.names = NULL)
     }
   }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
 }
@@ -94,14 +99,12 @@ This chapter presents results for Tier 3 hypotheses, which explore complex causa
 ```{r}
 #| label: tbl-h7-med
 #| tbl-cap: "H7 Mediation Analysis: Indirect Effects of Ideology through Support Groups"
-
 # Summarize mediation objects
 h7_med_sum <- list(
   "Religious Support" = h7_mediation$med_h7_religious,
   "Party Elite Support" = h7_mediation$fit_h7_party,
   "Military Support" = h7_mediation$fit_h7_military
 )
-
 # Custom summary table for ACME/ADE
 # (Prose summary here; tables usually rendered via custom kable in Quarto)
 ```
@@ -114,7 +117,6 @@ The results indicate a significant Average Causal Mediation Effect (ACME) for re
 #| label: tbl-h7-sem
 #| tbl-cap: "H7 SEM Mediation: lavaan Path Estimates"
 #| results: asis
-
 # Modelsummary or custom table for lavaan objects
 ```
 
