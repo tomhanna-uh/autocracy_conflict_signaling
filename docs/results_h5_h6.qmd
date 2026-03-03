@@ -8,6 +8,14 @@ source(here::here("R", "00_packages.R"))
 # Load pre-estimated models
 h5_logit_models <- readRDS(here::here("results", "h5_logit_models.rds"))
 h5_hurdle_models <- readRDS(here::here("results", "h5_hurdle_models.rds"))
+
+# Load cached dyad_ready for prediction plots
+dyad_ready_path <- here::here("results", "dyad_ready.rds")
+if (file.exists(dyad_ready_path)) {
+  dyad_ready <- readRDS(dyad_ready_path)
+} else {
+  message("dyad_ready.rds not found. Prediction plots will fail.")
+}
 h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
 ```
 
@@ -34,7 +42,7 @@ stargazer(
     "Legitimation Ratio",
     "Perf. Legitimation", "Personal. Legitimation",
     "Targets Democracy",
-    "Log CINC (A)", "Winning Coalition",
+    "CINC (A)", "Winning Coalition",
     "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
     "Peace Years (t\\textsuperscript{3})", "Cold War"
   ),
@@ -60,7 +68,7 @@ stargazer(
     "Legitimation Ratio",
     "Perf. Legitimation", "Personal. Legitimation",
     "Targets Democracy",
-    "Log CINC (A)", "Winning Coalition",
+    "CINC (A)", "Winning Coalition",
     "Peace Years (t)", "Peace Years (t\\textsuperscript{2})",
     "Peace Years (t\\textsuperscript{3})", "Cold War"
   ),
@@ -140,7 +148,7 @@ stargazer(
   covariate.labels = c(
     "Legitimation Ratio",
     "Perf. Legitimation", "Personal. Legitimation",
-    "Log CINC (A)", "Winning Coalition",
+    "CINC (A)", "Winning Coalition",
     "Peace Years (t)", "Cold War",
     "Revisionist Ideology",
     "Legit. Ratio × Rev. Ideology"
