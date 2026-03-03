@@ -11,6 +11,13 @@ if (file.exists(dyad_ready_path)) {
 } else {
   message("dyad_ready.rds not found. Run 02_data_prep.R first.")
 }
+# Load cached monadic_ready for leader-level descriptive stats
+monadic_ready_path <- here::here("results", "monadic_ready.rds")
+if (file.exists(monadic_ready_path)) {
+  monadic_ready <- readRDS(monadic_ready_path)
+} else {
+  message("monadic_ready.rds not found. Run 02_data_prep.R first.")
+}
 
 # Load all model objects
 h1_models   <- readRDS(here::here("results", "h1_logit_models.rds"))
