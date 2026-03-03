@@ -1,4 +1,4 @@
-# Tier 1 Results: Simple Logistic Regression (H1–H4) {#sec-results-tier1}
+# Tier 1 Results: Simple Logistic Regression (H1-H4) {#sec-results-tier1}
 
 ```{r}
 #| label: setup
@@ -42,13 +42,13 @@ extract_coefs <- function(model, model_name) {
   tryCatch({
     if (inherits(model, "logistf")) {
       data.frame(model = model_name, term = names(coef(model)),
-        estimate = coef(model), std.error = sqrt(diag(vcov(model))),
-        p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
     } else if (inherits(model, "coxph")) {
       s <- summary(model)
       data.frame(model = model_name, term = rownames(s$coefficients),
-        estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
-        p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
       v <- tryCatch(safe_vcov(model), error = function(e) NULL)
@@ -56,8 +56,8 @@ extract_coefs <- function(model, model_name) {
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
       data.frame(model = model_name, term = names(beta),
-        estimate = beta, std.error = se, p.value = pval,
-        stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = beta, std.error = se, p.value = pval,
+                 stringsAsFactors = FALSE, row.names = NULL)
     }
   }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
 }
@@ -107,14 +107,19 @@ build_model_table(
 
 ### Ideology Sub-type Models
 
+Sub-type models use simplified specifications (baseline + controls only, without temporal cubic spline) to avoid non-convergence caused by limited variance in individual ideology sub-type variables.
+
 ```{r}
 #| label: tbl-h1-subtypes
-#| tbl-cap: "H1: Ideology Sub-types and Conflict Initiation"
+#| tbl-cap: "H1: Ideology Sub-types and Conflict Initiation (Simplified Models)"
 build_model_table(
   list(
-    "Religious" = h1_models$h1_religious,
-    "Socialist" = h1_models$h1_socialist,
-    "Nationalist" = h1_models$h1_nationalist
+    "Relig. (base)" = h1_models$h1_religious_base,
+    "Relig. (+ctrl)" = h1_models$h1_religious,
+    "Social. (base)" = h1_models$h1_socialist_base,
+    "Social. (+ctrl)" = h1_models$h1_socialist,
+    "Nation. (base)" = h1_models$h1_nationalist_base,
+    "Nation. (+ctrl)" = h1_models$h1_nationalist
   )
 )
 ```
@@ -175,17 +180,17 @@ build_model_table(
 
 ## Summary
 
-@tbl-tier1-summary provides a compact summary of the key coefficient estimates and significance levels across H1–H4.
+@tbl-tier1-summary provides a compact summary of the key coefficient estimates and significance levels across H1-H4.
 
 ```{r}
 #| label: tbl-tier1-summary
-#| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1–H4 Full Models)"
+#| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1-H4 Full Models)"
 build_model_table(
   list(
     "H1: Initiation" = h1_models$h1_full,
-    "H2: Targeting" = h2_models$h2_full,
+    "H2: Targeting"  = h2_models$h2_full,
     "H3: Initiation" = h3_models$h3_full,
-    "H4: Targeting" = h4_models$h4_full
+    "H4: Targeting"  = h4_models$h4_full
   )
 )
 ```
