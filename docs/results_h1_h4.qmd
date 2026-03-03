@@ -3,14 +3,14 @@
 ```{r}
 #| label: setup
 #| include: false
-source("../R/00_packages.R")
-source("../R/02_data_prep.R")
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "02_data_prep.R"))
 
 # Load pre-estimated models
-h1_models <- readRDS("../results/h1_logit_models.rds")
-h2_models <- readRDS("../results/h2_logit_models.rds")
-h3_models <- readRDS("../results/h3_logit_models.rds")
-h4_models <- readRDS("../results/h4_logit_models.rds")
+h1_models <- readRDS(here::here("results", "h1_logit_models.rds"))
+h2_models <- readRDS(here::here("results", "h2_logit_models.rds"))
+h3_models <- readRDS(here::here("results", "h3_logit_models.rds"))
+h4_models <- readRDS(here::here("results", "h4_logit_models.rds"))
 ```
 
 This chapter presents results for Tier 1 hypotheses, which use standard logistic regression to estimate the relationship between leadership ideology, support group composition, and conflict behavior (initiation and target selection). All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
