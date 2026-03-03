@@ -11,7 +11,6 @@ h2_models <- readRDS(here::here("results", "h2_logit_models.rds"))
 h3_models <- readRDS(here::here("results", "h3_logit_models.rds"))
 h4_models <- readRDS(here::here("results", "h4_logit_models.rds"))
 ```
-
 This chapter presents results for Tier 1 hypotheses, which use standard logistic regression to estimate the relationship between leadership ideology, support group composition, and conflict behavior (initiation and target selection). All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
 
 ## H1: Leadership Ideology and Conflict Initiation
@@ -33,7 +32,7 @@ stargazer(
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll"),
   notes = c("Sample: Autocratic dyad-years, 1946\u20132010.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+    "*** p<0.001, ** p<0.01, * p<0.05")
 )
 ```
 
@@ -75,7 +74,7 @@ stargazer(
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll"),
   notes = c("Sample: Autocratic MID initiators only.",
-            "*** p<0.001, ** p<0.01, * p<0.05")
+    "*** p<0.001, ** p<0.01, * p<0.05")
 )
 ```
 
@@ -98,7 +97,7 @@ stargazer(
   title = "H3: Support Group Ideology and Conflict Initiation",
   dep.var.labels = "MID Initiated",
   column.labels = c("(1) Religious", "(2) Party", "(3) Military",
-                    "(4) Multi", "(5) +Controls", "(6) Full"),
+    "(4) Multi", "(5) +Controls", "(6) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
 )
@@ -123,7 +122,7 @@ stargazer(
   title = "H4: Democracy Targeting (Initiators Only)",
   dep.var.labels = "Target is Democracy",
   column.labels = c("(1) Religious", "(2) Party", "(3) Military",
-                    "(4) Multi", "(5) +Controls", "(6) Full"),
+    "(4) Multi", "(5) +Controls", "(6) Full"),
   star.cutoffs = c(0.05, 0.01, 0.001),
   omit.stat = c("aic", "ll")
 )
@@ -136,14 +135,18 @@ stargazer(
 ```{r}
 #| label: tbl-tier1-summary
 #| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1\u2013H4 Full Models)"
-modelsummary(
-  list(
-    "H1: Initiation" = h1_models$h1_full,
-    "H2: Targeting" = h2_models$h2_full,
-    "H3: Initiation" = h3_models$h3_full,
-    "H4: Targeting" = h4_models$h4_full
-  ),
-  stars = c("*" = 0.05, "**" = 0.01, "***" = 0.001),
-  gof_omit = "AIC|BIC|Log"
+#| results: asis
+stargazer(
+  h1_models$h1_full,
+  h2_models$h2_full,
+  h3_models$h3_full,
+  h4_models$h4_full,
+  type = "html",
+  title = "Tier 1 Summary: Key Coefficient Estimates (H1-H4 Full Models)",
+  dep.var.labels = c("MID Initiated", "Targets Democracy",
+    "MID Initiated", "Targets Democracy"),
+  column.labels = c("H1", "H2", "H3", "H4"),
+  star.cutoffs = c(0.05, 0.01, 0.001),
+  omit.stat = c("aic", "ll")
 )
 ```
