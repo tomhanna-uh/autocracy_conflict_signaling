@@ -4,7 +4,6 @@
 #| label: setup
 #| include: false
 source(here::here("R", "00_packages.R"))
-source(here::here("R", "02_data_prep.R"))
 
 # Load pre-estimated models
 h7_mediation <- readRDS(here::here("results", "h7_mediation.rds"))
