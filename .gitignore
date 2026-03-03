@@ -2,7 +2,6 @@
 # .gitignore for autocracy_conflict_signaling
 # R / RStudio / Quarto research project
 # =============================================================================
-
 # -----------------------------------------------------------------------------
 # DATA — never commit raw or derived data files
 # -----------------------------------------------------------------------------
@@ -15,11 +14,9 @@ ready_data/
 *.xls
 *.rds
 *.RData
-
 # Exceptions: keep placeholder/gitkeep files so the data/ folder exists in repo
 !data/.gitkeep
 !ready_data/.gitkeep
-
 # -----------------------------------------------------------------------------
 # R-specific
 # -----------------------------------------------------------------------------
@@ -28,7 +25,6 @@ ready_data/
 .Rapp.history
 .Rproj.user/
 *.Rproj.user
-
 # R package library (if using renv or packrat)
 renv/library/
 renv/.cache/
@@ -36,16 +32,13 @@ packrat/lib/
 packrat/lib-ext/
 packrat/lib-R/
 packrat/src/
-
 # R check output
 *.Rcheck/
-
 # knitr / rmarkdown caches
 *_cache/
 /cache/
 *.knit.md
 *.utf8.md
-
 # -----------------------------------------------------------------------------
 # Quarto output
 # -----------------------------------------------------------------------------
@@ -57,11 +50,9 @@ docs/_book/
 docs/.quarto/
 *.html
 !docs/*.html
-
 # Quarto freeze (computed results — commit if you want reproducible renders
 # without re-running models; exclude if you want fresh runs on each render)
 # _freeze/
-
 # Pandoc intermediates
 *.tex
 *.log
@@ -72,19 +63,15 @@ docs/.quarto/
 *.lot
 *.blg
 *.bbl
-
 # PDF output (generated; not source)
 *.pdf
-
 # -----------------------------------------------------------------------------
 # RStudio
 # -----------------------------------------------------------------------------
 .Rproj.user
 *.Rproj.user/
-
 # RStudio connection snippets
 .rstudio/
-
 # -----------------------------------------------------------------------------
 # Model output / saved objects
 # -----------------------------------------------------------------------------
@@ -93,18 +80,15 @@ results/
 models/
 *.stan
 *.stanfit
-
 # Temp / scratch files from the old repos
 temp_check.txt
 m1_combined.txt
 *_gem.R
 junk_code.qmd
 old_code_chunks/
-
 # -----------------------------------------------------------------------------
 # OS-generated files
 # -----------------------------------------------------------------------------
-
 # macOS
 .DS_Store
 .AppleDouble
@@ -113,7 +97,6 @@ Icon
 ._*
 .Spotlight-V100
 .Trashes
-
 # Windows
 Thumbs.db
 Thumbs.db:encryptable
@@ -121,10 +104,8 @@ ehthumbs.db
 ehthumbs_vista.db
 Desktop.ini
 $RECYCLE.BIN/
-
 # Linux
 *~
-
 # -----------------------------------------------------------------------------
 # Editor / IDE artifacts
 # -----------------------------------------------------------------------------
@@ -133,7 +114,6 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
-
 # -----------------------------------------------------------------------------
 # Environment / secrets
 # -----------------------------------------------------------------------------
@@ -142,3 +122,5 @@ $RECYCLE.BIN/
 secrets/
 *.key
 *.pem
+Dissertation.bib
+.RDataTmp
