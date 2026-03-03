@@ -4,8 +4,13 @@
 #| label: setup
 #| include: false
 source(here::here("R", "00_packages.R"))
-source(here::here("R", "01_load_data.R"))
-source(here::here("R", "02_data_prep.R"))
+# Load cached dyad_ready (saved by 02_data_prep.R) instead of full pipeline
+dyad_ready_path <- here::here("results", "dyad_ready.rds")
+if (file.exists(dyad_ready_path)) {
+  dyad_ready <- readRDS(dyad_ready_path)
+} else {
+  message("dyad_ready.rds not found. Run 02_data_prep.R first to generate it.")
+}
 ```
 
 ## Data Sources
