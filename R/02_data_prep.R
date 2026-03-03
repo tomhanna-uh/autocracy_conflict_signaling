@@ -232,8 +232,8 @@ message(sprintf("[02] monadic_ready subset: %d -> %d columns (%s)",
 
 # ==============================================================================
 # 7. Final environment cleanup ----
-# Remove all leftover objects except the two analysis-ready dataframes.
+# Remove only temporary objects created by this script (not the whole environment).
 # ==============================================================================
-rm(list = setdiff(ls(), c("dyad_ready", "monadic_ready")))
+rm(list = intersect(ls(), c("dyad_df", "prep_dyad", "prep_monadic", "dyad_keep", "dyad_before", "monadic_keep", "monadic_before")))
 gc()
-message("[02_data_prep.R] Done. Environment contains only dyad_ready and monadic_ready.")
+message("[02_data_prep.R] Done. dyad_ready and monadic_ready are in the environment.")
