@@ -11,6 +11,31 @@ h2_models <- readRDS(here::here("results", "h2_logit_models.rds"))
 h3_models <- readRDS(here::here("results", "h3_logit_models.rds"))
 h4_models <- readRDS(here::here("results", "h4_logit_models.rds"))
 
+# Safe vcov that bypasses summary.brglmFit (which crashes on mu.eta)
+safe_vcov <- function(model) {
+  if (inherits(model, "brglmFit") && !is.null(model$Fisher.info)) {
+    V <- solve(model$Fisher.info)
+    nms <- names(coef(model))
+    if (nrow(V) == length(nms)) {
+      rownames(V) <- colnames(V) <- nms
+    }
+    return(V)
+  }
+  if (inherits(model, "glm") && !is.null(model$qr)) {
+    p <- model$rank
+    p1 <- seq_len(p)
+    R <- qr.R(model$qr)[p1, p1, drop = FALSE]
+    Rinv <- backsolve(R, diag(p))
+    dispersion <- if (model$family$family %in% c("binomial", "poisson")) 1 else {
+      sum(model$weights * model$residuals^2) / model$df.residual
+    }
+    V <- dispersion * tcrossprod(Rinv)
+    rownames(V) <- colnames(V) <- names(coef(model))[p1]
+    return(V)
+  }
+  stats::vcov(model)
+}
+
 # Universal coefficient extractor (avoids summary() which crashes on brglmFit)
 extract_coefs <- function(model, model_name) {
   if (is.null(model)) return(NULL)
@@ -26,7 +51,7 @@ extract_coefs <- function(model, model_name) {
         p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
-      v <- tryCatch(vcov(model), error = function(e) NULL)
+      v <- tryCatch(safe_vcov(model), error = function(e) NULL)
       se <- if (is.null(v)) rep(NA_real_, length(beta)) else sqrt(diag(v))
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
@@ -52,7 +77,7 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   }
   all_coefs$stars <- ifelse(all_coefs$p.value < 0.001, "***",
     ifelse(all_coefs$p.value < 0.01, "**",
-      ifelse(all_coefs$p.value < 0.05, "*", "")))
+    ifelse(all_coefs$p.value < 0.05, "*", "")))
   all_coefs$cell <- paste0(sprintf("%.3f", all_coefs$estimate),
     all_coefs$stars, " (", sprintf("%.3f", all_coefs$std.error), ")")
   wide <- reshape(all_coefs[, c("label", "model", "cell")],
@@ -61,6 +86,7 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   knitr::kable(wide, row.names = FALSE)
 }
 ```
+
 This chapter presents results for Tier 1 hypotheses, which use standard logistic regression to estimate the relationship between leadership ideology, support group composition, and conflict behavior (initiation and target selection). All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
 
 ## H1: Leadership Ideology and Conflict Initiation
@@ -153,7 +179,7 @@ build_model_table(
 
 ```{r}
 #| label: tbl-tier1-summary
-#| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1\u2013H4 Full Models)"
+#| tbl-cap: "Tier 1 Summary: Key Coefficient Estimates (H1–H4 Full Models)"
 build_model_table(
   list(
     "H1: Initiation" = h1_models$h1_full,
