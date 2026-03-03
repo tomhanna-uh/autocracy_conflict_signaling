@@ -4,6 +4,13 @@
 #| label: setup
 #| include: false
 source(here::here("R", "00_packages.R"))
+# Load cached dyad_ready for descriptive statistics
+dyad_ready_path <- here::here("results", "dyad_ready.rds")
+if (file.exists(dyad_ready_path)) {
+  dyad_ready <- readRDS(dyad_ready_path)
+} else {
+  message("dyad_ready.rds not found. Run 02_data_prep.R first.")
+}
 
 # Load all model objects
 h1_models   <- readRDS(here::here("results", "h1_logit_models.rds"))
