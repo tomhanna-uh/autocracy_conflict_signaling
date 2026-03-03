@@ -107,7 +107,7 @@ All data preparation is handled by `R/02_data_prep.R`. Key transformations inclu
 #| tbl-cap: "Descriptive statistics for key analysis variables"
 
 dyad_ready %>%
-  select(
+    dplyr::select(
     mid_initiated, targets_democracy,
     sidea_revisionist_domestic, legit_ratio,
     sidea_dynamic_leader, log_cinc_a, log_cinc_b,
