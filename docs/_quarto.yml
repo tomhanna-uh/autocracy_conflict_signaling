@@ -14,9 +14,6 @@ book:
   date-format: "MMMM D, YYYY"
   doi: ""
   license: CC BY-NC-SA 4.0
-    copyright:
-    holder: Tom Hanna
-    year: 2026
 
   chapters:
     - index.qmd
