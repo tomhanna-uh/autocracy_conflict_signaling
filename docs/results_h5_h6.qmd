@@ -50,13 +50,13 @@ extract_coefs <- function(model, model_name) {
   tryCatch({
     if (inherits(model, "logistf")) {
       data.frame(model = model_name, term = names(coef(model)),
-                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
-                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+        estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+        p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
     } else if (inherits(model, "coxph")) {
       s <- summary(model)
       data.frame(model = model_name, term = rownames(s$coefficients),
-                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
-                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+        estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+        p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
       v <- tryCatch(safe_vcov(model), error = function(e) NULL)
@@ -64,8 +64,8 @@ extract_coefs <- function(model, model_name) {
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
       data.frame(model = model_name, term = names(beta),
-                 estimate = beta, std.error = se, p.value = pval,
-                 stringsAsFactors = FALSE, row.names = NULL)
+        estimate = beta, std.error = se, p.value = pval,
+        stringsAsFactors = FALSE, row.names = NULL)
     }
   }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
 }
@@ -100,11 +100,21 @@ safe_predict <- function(model, newdata) {
   V <- safe_vcov(model)
   mf <- model.frame(delete.response(terms(model)), data = newdata)
   X <- model.matrix(delete.response(terms(model)), data = mf)
-  # Align X columns and V to match beta names
+  # Align X columns, beta, and V to their shared names
   keep <- intersect(names(beta), colnames(X))
+  if (!is.null(rownames(V))) {
+    keep <- intersect(keep, rownames(V))
+  }
   beta <- beta[keep]
   X <- X[, keep, drop = FALSE]
-  V <- V[keep, keep, drop = FALSE]
+  # Subset V by position if it lacks names, otherwise by name
+  if (!is.null(rownames(V))) {
+    V <- V[keep, keep, drop = FALSE]
+  } else {
+    # V has no names: assume same order as original coef(model)
+    idx <- match(keep, names(coef(model)))
+    V <- V[idx, idx, drop = FALSE]
+  }
   eta <- as.numeric(X %*% beta)
   se_eta <- sqrt(rowSums((X %*% V) * X))
   data.frame(
@@ -148,7 +158,6 @@ build_model_table(
 ```{r}
 #| label: fig-h5-pred
 #| fig-cap: "H5: Predicted probability of MID initiation by legitimation ratio (full logit model)"
-
 pred_h5 <- data.frame(
   legit_ratio = seq(
     quantile(dyad_ready$legit_ratio, 0.05, na.rm = TRUE),
@@ -201,7 +210,6 @@ build_model_table(
 ```{r}
 #| label: fig-h6-pred
 #| fig-cap: "H6: Predicted probability of democracy targeting by legitimation ratio (full model)"
-
 conflict_data <- dyad_ready %>% filter(mid_initiated == 1)
 
 pred_h6 <- data.frame(
