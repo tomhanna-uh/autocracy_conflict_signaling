@@ -1,8 +1,8 @@
 # 05_m1_m2_mediation.R — Mediation and Survival Analysis (M1 and M2)
 
 # Load required scripts
-source("R/00_packages.R")
-source("R/02_data_prep.R")
+source(here::here("R", "00_packages.R"))
+source(here::here("R", "02_data_prep.R"))
 
 # Variable note (monadic leader-level data: monadic_ready):
 # avg_ideological_legit     = leader-period mean of v2exl_legitideol_a (M1 mediator)
