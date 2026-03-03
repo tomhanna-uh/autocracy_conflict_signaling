@@ -13,8 +13,8 @@ if (exists("dyad_ready") && exists("monadic_ready")) {
 } else {
 
 # Load required scripts
-source("R/00_packages.R")
-source("R/01_load_data.R")
+  source(here::here("R", "00_packages.R"))
+  source(here::here("R", "01_load_data.R"))
 
 # 1. Load Data ----
 dyad_df <- load_dyad_data()
