@@ -19,7 +19,27 @@ if (file.exists(dyad_ready_path)) {
 
 h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
 
-# Universal coefficient extractor (avoids summary() which crashes on brglmFit)
+# Safe vcov that bypasses summary.brglmFit (which crashes on mu.eta)
+safe_vcov <- function(model) {
+  if (inherits(model, "brglmFit") && !is.null(model$Fisher.info)) {
+    return(solve(model$Fisher.info))
+  }
+  if (inherits(model, "glm") && !is.null(model$qr)) {
+    p <- model$rank
+    p1 <- seq_len(p)
+    R <- qr.R(model$qr)[p1, p1, drop = FALSE]
+    Rinv <- backsolve(R, diag(p))
+    dispersion <- if (model$family$family %in% c("binomial", "poisson")) 1 else {
+      sum(model$weights * model$residuals^2) / model$df.residual
+    }
+    V <- dispersion * tcrossprod(Rinv)
+    rownames(V) <- colnames(V) <- names(coef(model))[p1]
+    return(V)
+  }
+  stats::vcov(model)
+}
+
+# Universal coefficient extractor
 extract_coefs <- function(model, model_name) {
   if (is.null(model)) return(NULL)
   tryCatch({
@@ -34,7 +54,7 @@ extract_coefs <- function(model, model_name) {
                  p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
-      v <- tryCatch(vcov(model), error = function(e) NULL)
+      v <- tryCatch(safe_vcov(model), error = function(e) NULL)
       se <- if (is.null(v)) rep(NA_real_, length(beta)) else sqrt(diag(v))
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
@@ -69,14 +89,12 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   knitr::kable(wide, row.names = FALSE)
 }
 
-# Safe prediction function that avoids summary() crash on brglmFit
+# Safe prediction that bypasses predict.glm -> summary crash
 safe_predict <- function(model, newdata) {
   beta <- coef(model)
-  V <- vcov(model)
-  ff <- formula(model)
+  V <- safe_vcov(model)
   mf <- model.frame(delete.response(terms(model)), data = newdata)
   X <- model.matrix(delete.response(terms(model)), data = mf)
-  # Keep only columns matching coefficient names
   X <- X[, names(beta), drop = FALSE]
   eta <- as.numeric(X %*% beta)
   se_eta <- sqrt(rowSums((X %*% V) * X))
@@ -122,7 +140,6 @@ build_model_table(
 #| label: fig-h5-pred
 #| fig-cap: "H5: Predicted probability of MID initiation by legitimation ratio (full logit model)"
 
-# Predicted probability plot for H5 full model
 pred_h5 <- data.frame(
   legit_ratio = seq(
     quantile(dyad_ready$legit_ratio, 0.05, na.rm = TRUE),
@@ -176,7 +193,6 @@ build_model_table(
 #| label: fig-h6-pred
 #| fig-cap: "H6: Predicted probability of democracy targeting by legitimation ratio (full model)"
 
-# Load conflict-only data for prediction
 conflict_data <- dyad_ready %>% filter(mid_initiated == 1)
 
 pred_h6 <- data.frame(
