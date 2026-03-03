@@ -7,9 +7,9 @@
 # Tier 1: Simple Logistic Regression
 # ==============================================================================
 
-# Load required scripts
-source(here::here("R", "00_packages.R"))
-source(here::here("R", "02_data_prep.R"))
+    # Load required scripts
+    source(here::here("R", "00_packages.R"))
+    source(here::here("R", "02_data_prep.R"))
 
 # ------------------------------------------------------------------------------
 # Variable note:
@@ -39,22 +39,17 @@ h12_vars <- c(
   "cinc_a", "sidea_winning_coalition_size",
   "t", "t2", "t3", "cold_war"
 )
-
 # Keep only columns that actually exist (sub-types may be absent)
 h12_vars <- intersect(h12_vars, names(dyad_ready))
 h12_data <- dyad_ready[, h12_vars, drop = FALSE]
   # NOTE: dyad_ready/monadic_ready kept in memory for pipeline efficiency
 gc()
-
 message(sprintf("[03] h12_data: %d rows x %d cols, %s",
                 nrow(h12_data), ncol(h12_data),
                 format(object.size(h12_data), units = "MB")))
 
 # ------------------------------------------------------------------------------
 # Helper: strip large components from glm objects before saving.
-# Reduces RDS file size from ~1 GB to ~1 MB by removing the stored copy
-# of the data, fitted values, residuals, etc. Coefficients, SEs, and
-# summary() still work. For predict(), re-supply newdata explicitly.
 # ------------------------------------------------------------------------------
 strip_glm <- function(model) {
   if (is.null(model)) return(NULL)
@@ -73,22 +68,9 @@ strip_glm <- function(model) {
 
 # ------------------------------------------------------------------------------
 # Helper: safely fit a logit model.
-#
-# Strategy:
-#   1. Try Firth penalized logit (brglm2) -- handles separation, always
-#      converges, and produces finite estimates even with rare events.
-#   2. If brglm2 is unavailable, fall back to standard glm() with
-#      maxit = 100.
-#   3. Return NULL with a warning if the data is insufficient.
-#
-# All returned models are stripped to minimise saved object size.
 # ------------------------------------------------------------------------------
 safe_glm <- function(formula, data, min_obs = 30) {
-
-  # Extract variable names from the formula
   vars <- all.vars(formula)
-
-  # Check that all variables exist and have non-NA data
   for (v in vars) {
     if (!v %in% names(data)) {
       warning(sprintf("[03] Variable '%s' not found in data. Skipping model.", v))
@@ -99,8 +81,6 @@ safe_glm <- function(formula, data, min_obs = 30) {
       return(NULL)
     }
   }
-
-  # Check complete cases
   complete <- complete.cases(data[, vars, drop = FALSE])
   n_complete <- sum(complete)
   if (n_complete < min_obs) {
@@ -110,8 +90,6 @@ safe_glm <- function(formula, data, min_obs = 30) {
     ))
     return(NULL)
   }
-
-  # Primary: Firth penalized logit via brglm2
   if (requireNamespace("brglm2", quietly = TRUE)) {
     fit <- tryCatch(
       glm(formula, family = binomial(link = "logit"), data = data,
@@ -128,8 +106,6 @@ safe_glm <- function(formula, data, min_obs = 30) {
       return(strip_glm(fit))
     }
   }
-
-  # Fallback: standard glm with increased maxit
   fit <- tryCatch(
     glm(formula, family = binomial(link = "logit"), data = data,
         control = glm.control(maxit = 100)),
@@ -144,45 +120,54 @@ safe_glm <- function(formula, data, min_obs = 30) {
   strip_glm(fit)
 }
 
+# ------------------------------------------------------------------------------
+# Helper: safe VIF computation
+# ------------------------------------------------------------------------------
+safe_vif <- function(model, label = "") {
+  if (is.null(model)) return(NULL)
+  tryCatch({
+    v <- car::vif(model)
+    if (is.matrix(v)) v <- v[, "GVIF"]
+    message(sprintf("[03] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
+    v
+  }, error = function(e) {
+    message(sprintf("[03] VIF failed for %s: %s", label, e$message))
+    NULL
+  })
+}
+
 # ==============================================================================
 # 1. Hypothesis 1: The Ideological Autocrat -- Initiation ----
+# NOTE: targets_democracy is NOT included as a predictor for H1.
+#       It is a parallel DV (used in H2), not a control.
 # ==============================================================================
-
 estimate_h1_logit <- function(data) {
-
   h1_baseline <- safe_glm(mid_initiated ~ sidea_revisionist_domestic,
-                           data = data)
-
+                          data = data)
   h1_controls <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
-                             cinc_a +
-                             sidea_winning_coalition_size,
-                           data = data)
-
-  h1_full <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
-                        targets_democracy +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + t2 + t3 + cold_war,
-                      data = data)
-
+                            cinc_a +
+                            sidea_winning_coalition_size,
+                          data = data)
+  h1_full     <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
+                            cinc_a +
+                            sidea_winning_coalition_size +
+                            t + t2 + t3 + cold_war,
+                          data = data)
   h1_religious <- safe_glm(mid_initiated ~ sidea_religious_revisionist_domestic +
-                             targets_democracy + cinc_a +
+                             cinc_a +
                              sidea_winning_coalition_size +
                              t + t2 + t3 + cold_war,
                            data = data)
-
   h1_socialist <- safe_glm(mid_initiated ~ sidea_socialist_revisionist_domestic +
-                             targets_democracy + cinc_a +
+                             cinc_a +
                              sidea_winning_coalition_size +
                              t + t2 + t3 + cold_war,
                            data = data)
-
   h1_nationalist <- safe_glm(mid_initiated ~ sidea_nationalist_revisionist_domestic +
-                               targets_democracy + cinc_a +
+                               cinc_a +
                                sidea_winning_coalition_size +
                                t + t2 + t3 + cold_war,
                              data = data)
-
   list(
     h1_baseline    = h1_baseline,
     h1_controls    = h1_controls,
@@ -196,11 +181,8 @@ estimate_h1_logit <- function(data) {
 # ==============================================================================
 # 2. Hypothesis 2: The Ideological Autocrat -- Targeting ----
 # ==============================================================================
-
 estimate_h2_logit <- function(data) {
-
   conflict_data <- data %>% filter(mid_initiated == 1)
-
   if (nrow(conflict_data) == 0) {
     warning("[03] No conflict initiations found. H2 models skipped.")
     return(list(
@@ -208,36 +190,29 @@ estimate_h2_logit <- function(data) {
       h2_religious = NULL, h2_socialist = NULL, h2_nationalist = NULL
     ))
   }
-
   h2_baseline <- safe_glm(targets_democracy ~ sidea_revisionist_domestic,
-                           data = conflict_data)
-
+                          data = conflict_data)
   h2_controls <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
-                             cinc_a +
-                             sidea_winning_coalition_size,
-                           data = conflict_data)
-
-  h2_full <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
-                        cinc_a +
-                        sidea_winning_coalition_size +
-                        t + cold_war,
-                      data = conflict_data)
-
+                            cinc_a +
+                            sidea_winning_coalition_size,
+                          data = conflict_data)
+  h2_full     <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
+                            cinc_a +
+                            sidea_winning_coalition_size +
+                            t + cold_war,
+                          data = conflict_data)
   h2_religious <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
                              cinc_a + sidea_winning_coalition_size +
                              t + cold_war,
                            data = conflict_data)
-
   h2_socialist <- safe_glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
                              cinc_a + sidea_winning_coalition_size +
                              t + cold_war,
                            data = conflict_data)
-
   h2_nationalist <- safe_glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
                                cinc_a + sidea_winning_coalition_size +
                                t + cold_war,
                              data = conflict_data)
-
   list(
     h2_baseline    = h2_baseline,
     h2_controls    = h2_controls,
@@ -251,7 +226,6 @@ estimate_h2_logit <- function(data) {
 # ==============================================================================
 # 3. Execution and Saving Results ----
 # ==============================================================================
-
 h1_models <- estimate_h1_logit(h12_data)
 h2_models <- estimate_h2_logit(h12_data)
 
@@ -265,12 +239,19 @@ for (nm in names(h2_models)) {
   message(sprintf("  H2 %-15s : %s", nm, status))
 }
 
+# ==============================================================================
+# 4. VIF Diagnostics ----
+# ==============================================================================
+h1_vif <- lapply(setNames(names(h1_models), names(h1_models)), function(nm) safe_vif(h1_models[[nm]], nm))
+h2_vif <- lapply(setNames(names(h2_models), names(h2_models)), function(nm) safe_vif(h2_models[[nm]], nm))
+
 # Save results (stripped models = small files)
 dir.create("results", showWarnings = FALSE)
 saveRDS(h1_models, "results/h1_logit_models.rds")
 saveRDS(h2_models, "results/h2_logit_models.rds")
+saveRDS(list(h1 = h1_vif, h2 = h2_vif), "results/h12_vif.rds")
 
 # Cleanup: remove local data and model objects
-rm(h12_data, h12_vars, h1_models, h2_models)
+rm(h12_data, h12_vars, h1_models, h2_models, h1_vif, h2_vif)
 gc()
 message("[03_h1_h2_logit.R] Done. Models saved to results/")
