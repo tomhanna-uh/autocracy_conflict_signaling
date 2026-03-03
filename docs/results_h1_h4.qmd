@@ -4,7 +4,6 @@
 #| label: setup
 #| include: false
 source(here::here("R", "00_packages.R"))
-source(here::here("R", "02_data_prep.R"))
 
 # Load pre-estimated models
 h1_models <- readRDS(here::here("results", "h1_logit_models.rds"))
