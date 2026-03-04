@@ -56,7 +56,7 @@ format:
     smooth-scroll: true
     reference-location: margin
   pdf:
-    documentclass: article
+    documentclass: scrreprt
     papersize: letter
     fontsize: 12pt
     geometry:
