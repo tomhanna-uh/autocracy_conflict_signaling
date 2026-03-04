@@ -170,6 +170,10 @@ For consistency across scripts, Quarto documents, and output tables:
 
 ---
 
+Note that the references section is based on the citations in this limited draft version only. 
+
+---
+
 ## Citation
 
 Hanna, Tom. *Autocracy, Conflict, and Ideological Signaling*. Working manuscript, University of Houston, 2025.
