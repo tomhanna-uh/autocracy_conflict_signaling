@@ -90,15 +90,15 @@ estimate_h8_initiation <- function(data) {
   h8_init_main <- safe_glm(
     mid_initiated ~ legit_ratio + sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = data)
+      cold_war + t_scaled + t2_scaled + t3_scaled + cold_war, data = data)
   h8_init_int <- safe_glm(
     mid_initiated ~ legit_ratio * sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = data)
+      cold_war + t_scaled + t2_scaled + t3_scaled + cold_war, data = data)
   h8_init_lpm_int <- safe_lm(
     mid_initiated ~ legit_ratio * sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = data)
+      cold_war + t_scaled + t2_scaled + t3_scaled + cold_war, data = data)
   list(h8_init_main = h8_init_main, h8_init_int = h8_init_int,
        h8_init_lpm_int = h8_init_lpm_int)
 }
@@ -136,17 +136,17 @@ estimate_h8_robustness <- function(data) {
   if (nrow(conflict_data) < 30) return(list(h8_wcoal_int = NULL, h8_milsupp_int = NULL, h8_coldwar_int = NULL))
   h8_wcoal_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_winning_coalition_size +
-      sidea_dynamic_leader + log_cinc_a + log_cinc_b + cold_war + t + t2 + t3,
+      sidea_dynamic_leader + log_cinc_a + log_cinc_b + cold_war + t_scaled + t2_scaled + t3_scaled + cold_war,
     data = conflict_data)
   h8_milsupp_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_military_support +
       sidea_dynamic_leader + log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + cold_war + t + t2 + t3,
+      sidea_winning_coalition_size + cold_war + t_scaled + t2_scaled + t3_scaled + cold_war,
     data = conflict_data)
   h8_coldwar_int <- safe_lm(
     targets_democracy ~ legit_ratio * cold_war +
       sidea_dynamic_leader + log_cinc_a + log_cinc_b +
-      sidea_winning_coalition_size + t + t2 + t3,
+      sidea_winning_coalition_size + t_scaled + t2_scaled + t3_scaled + cold_war,
     data = conflict_data)
   list(h8_wcoal_int = h8_wcoal_int, h8_milsupp_int = h8_milsupp_int,
        h8_coldwar_int = h8_coldwar_int)

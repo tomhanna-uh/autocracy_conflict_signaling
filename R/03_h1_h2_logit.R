@@ -154,7 +154,7 @@ estimate_h1_logit <- function(data) {
     h1_full     <- safe_glm(mid_initiated ~ sidea_revisionist_domestic +
                                 cinc_a +
                                 sidea_winning_coalition_size +
-                                t + t2 + t3 + cold_war,
+                                + t_scaled + t2_scaled + t3_scaled + cold_war, 
                             data = data)
 
     # --- Sub-type models: simplified to avoid non-convergence ---
@@ -221,22 +221,22 @@ estimate_h2_logit <- function(data) {
     h2_full     <- safe_glm(targets_democracy ~ sidea_revisionist_domestic +
                                 cinc_a +
                                 sidea_winning_coalition_size +
-                                t + cold_war,
+                                t_scaled + cold_war,
                             data = conflict_data)
 
     h2_religious <- safe_glm(targets_democracy ~ sidea_religious_revisionist_domestic +
                                  cinc_a + sidea_winning_coalition_size +
-                                 t + cold_war,
+                                 t_scaled + cold_war,
                              data = conflict_data)
 
     h2_socialist <- safe_glm(targets_democracy ~ sidea_socialist_revisionist_domestic +
                                  cinc_a + sidea_winning_coalition_size +
-                                 t + cold_war,
+                                 t_scaled + cold_war,
                              data = conflict_data)
 
     h2_nationalist <- safe_glm(targets_democracy ~ sidea_nationalist_revisionist_domestic +
                                    cinc_a + sidea_winning_coalition_size +
-                                   t + cold_war,
+                                   t_scaled + cold_war,
                                data = conflict_data)
 
     list(

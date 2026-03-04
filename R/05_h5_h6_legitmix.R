@@ -86,15 +86,15 @@ estimate_h5_logit <- function(data) {
   h5_controls   <- safe_glm(mid_initiated ~ legit_ratio + cinc_a + sidea_winning_coalition_size, data = data)
   h5_full       <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
                               cinc_a + sidea_winning_coalition_size +
-                              t + t2 + t3 + cold_war, data = data)
+                         t_scaled + t2_scaled + t3_scaled + cold_war + cold_war, data = data)
   list(h5_baseline = h5_baseline, h5_components = h5_components,
        h5_controls = h5_controls, h5_full = h5_full)
 }
 
 estimate_h5_hurdle <- function(data) {
   hurdle_binary <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                              cinc_a + sidea_winning_coalition_size +
-                              t + t2 + t3 + cold_war, data = data)
+                              cinc_a + sidea_winning_coalition_size + 
+                        t_scaled + t2_scaled + t3_scaled + cold_war + cold_war, data = data)
   initiators <- data %>% filter(mid_initiated == 1)
   hurdle_count <- safe_glm(mid_initiated ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
                              cinc_a + sidea_winning_coalition_size + cold_war,
@@ -118,10 +118,10 @@ estimate_h6_logit <- function(data) {
   h6_controls    <- safe_glm(targets_democracy ~ legit_ratio + cinc_a + sidea_winning_coalition_size,
                              data = conflict_data)
   h6_full        <- safe_glm(targets_democracy ~ legit_ratio + v2exl_legitperf_a + v2exl_legitlead_a +
-                               cinc_a + sidea_winning_coalition_size + t + cold_war,
+                               cinc_a + sidea_winning_coalition_size + t_scaled + cold_war,
                              data = conflict_data)
   h6_interaction <- safe_glm(targets_democracy ~ legit_ratio * sidea_revisionist_domestic +
-                               cinc_a + sidea_winning_coalition_size + t + cold_war,
+                               cinc_a + sidea_winning_coalition_size + t_scaled + cold_war,
                              data = conflict_data)
   list(h6_baseline = h6_baseline, h6_components = h6_components,
        h6_controls = h6_controls, h6_full = h6_full, h6_interaction = h6_interaction)

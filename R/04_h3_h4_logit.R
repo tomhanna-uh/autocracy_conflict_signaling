@@ -148,7 +148,7 @@ estimate_h3_logit <- function(data) {
                             sidea_ethnic_racial_support +
                             cinc_a +
                             sidea_winning_coalition_size +
-                            t + t2 + t3 + cold_war, data = data)
+                        t_scaled + t2_scaled + t3_scaled + cold_war + cold_war, data = data)
 
   list(h3_baseline = h3_baseline, h3_party = h3_party,
        h3_military = h3_military, h3_multi = h3_multi,

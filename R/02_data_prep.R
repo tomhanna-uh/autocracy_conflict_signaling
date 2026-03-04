@@ -54,6 +54,12 @@ prep_dyad <- function(df) {
       t2 = t^2,
       t3 = t^3
     ) %>%
+                # After the mutate block that creates t/t2/t3
+                mutate(
+                        t_scaled = t / 100,          # Carter & Signorino themselves recommend this for long panels
+                        t2_scaled = t_scaled^2,
+                        t3_scaled = t_scaled^3
+                        ) %>%
     ungroup()
 }
 
@@ -140,6 +146,12 @@ prep_monadic <- function(dyad_df) {
       t2 = t^2,
       t3 = t^3
     ) %>%
+                # After the mutate block that creates t/t2/t3
+                mutate(
+                        t_scaled = t / 100,          # Carter & Signorino themselves recommend this for long panels
+                        t2_scaled = t_scaled^2,
+                        t3_scaled = t_scaled^3
+                        ) %>%
     ungroup()
 }
 
@@ -234,6 +246,6 @@ message(sprintf("[02] monadic_ready subset: %d -> %d columns (%s)",
 # 7. Final environment cleanup ----
 # Remove only temporary objects created by this script (not the whole environment).
 # ==============================================================================
-rm(list = intersect(ls(), c("dyad_df", "prep_dyad", "prep_monadic", "dyad_keep", "dyad_before", "monadic_keep", "monadic_before")))
+rm(list = intersect(ls(), c("grave_d","dyad_df", "prep_dyad", "prep_monadic", "dyad_keep", "dyad_before", "monadic_keep", "monadic_before")))
 gc()
 message("[02_data_prep.R] Done. dyad_ready and monadic_ready are in the environment.")
