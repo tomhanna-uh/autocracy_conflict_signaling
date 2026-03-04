@@ -43,13 +43,13 @@ extract_coefs <- function(model, model_name) {
   tryCatch({
     if (inherits(model, "logistf")) {
       data.frame(model = model_name, term = names(coef(model)),
-        estimate = coef(model), std.error = sqrt(diag(vcov(model))),
-        p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = coef(model), std.error = sqrt(diag(vcov(model))),
+                 p.value = model$prob, stringsAsFactors = FALSE, row.names = NULL)
     } else if (inherits(model, "coxph")) {
       s <- summary(model)
       data.frame(model = model_name, term = rownames(s$coefficients),
-        estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
-        p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = s$coefficients[, "coef"], std.error = s$coefficients[, "se(coef)"],
+                 p.value = s$coefficients[, "Pr(>|z|)"], stringsAsFactors = FALSE, row.names = NULL)
     } else {
       beta <- coef(model)
       v <- tryCatch(safe_vcov(model), error = function(e) NULL)
@@ -57,8 +57,8 @@ extract_coefs <- function(model, model_name) {
       z <- beta / se
       pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
       data.frame(model = model_name, term = names(beta),
-        estimate = beta, std.error = se, p.value = pval,
-        stringsAsFactors = FALSE, row.names = NULL)
+                 estimate = beta, std.error = se, p.value = pval,
+                 stringsAsFactors = FALSE, row.names = NULL)
     }
   }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
 }
@@ -86,6 +86,49 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   names(wide) <- gsub("cell\\.", "", names(wide))
   knitr::kable(wide, row.names = FALSE)
 }
+
+# Helper: extract mediation summary into a data.frame
+extract_mediation <- function(med_obj, label) {
+  if (is.null(med_obj)) return(NULL)
+  tryCatch({
+    s <- summary(med_obj)
+    data.frame(
+      Mediator = label,
+      ACME     = sprintf("%.4f", s$d0),
+      `ACME p` = sprintf("%.3f", s$d0.p),
+      ADE      = sprintf("%.4f", s$z0),
+      `ADE p`  = sprintf("%.3f", s$z0.p),
+      Total    = sprintf("%.4f", s$tau.coef),
+      `Prop. Mediated` = sprintf("%.3f", s$n0),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+  }, error = function(e) {
+    message("Mediation summary failed for ", label, ": ", e$message)
+    NULL
+  })
+}
+
+# Helper: extract lavaan SEM parameters
+extract_sem_params <- function(fit, label) {
+  if (is.null(fit)) return(NULL)
+  tryCatch({
+    pe <- lavaan::parameterEstimates(fit)
+    defined <- pe[pe$op == ":=", , drop = FALSE]
+    if (nrow(defined) == 0) return(NULL)
+    out <- data.frame(
+      Model = label,
+      Parameter = defined$label,
+      Estimate = sprintf("%.4f", defined$est),
+      SE = sprintf("%.4f", defined$se),
+      `p-value` = sprintf("%.3f", defined$pvalue),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+    out
+  }, error = function(e) {
+    message("SEM extraction failed for ", label, ": ", e$message)
+    NULL
+  })
+}
 ```
 
 This chapter presents results for Tier 3 hypotheses, which explore complex causal mechanisms: support group mediation (**H7**), dynamic leadership moderation (**H8**), and the survival benefits of ideological conflict (**H9**).
@@ -99,25 +142,34 @@ This chapter presents results for Tier 3 hypotheses, which explore complex causa
 ```{r}
 #| label: tbl-h7-med
 #| tbl-cap: "H7 Mediation Analysis: Indirect Effects of Ideology through Support Groups"
-# Summarize mediation objects
-h7_med_sum <- list(
-  "Religious Support" = h7_mediation$med_h7_religious,
-  "Party Elite Support" = h7_mediation$fit_h7_party,
-  "Military Support" = h7_mediation$fit_h7_military
-)
-# Custom summary table for ACME/ADE
-# (Prose summary here; tables usually rendered via custom kable in Quarto)
+med_rows <- Filter(Negate(is.null), list(
+  extract_mediation(h7_mediation$med_h7_religious, "Religious Support"),
+  extract_mediation(h7_mediation$fit_h7_party, "Party Elite Support"),
+  extract_mediation(h7_mediation$fit_h7_military, "Military Support")
+))
+if (length(med_rows) > 0) {
+  knitr::kable(do.call(rbind, med_rows), row.names = FALSE)
+} else {
+  cat("Mediation models did not converge or produced no results.")
+}
 ```
 
-The results indicate a significant Average Causal Mediation Effect (ACME) for religious and party elite support, suggesting that ideology's impact on target selection is partially channeled through the need to maintain coalition loyalty.
+The results indicate whether a significant Average Causal Mediation Effect (ACME) exists for religious, party elite, and military support, suggesting that ideology's impact on target selection may be partially channeled through coalition loyalty.
 
 ### Structural Equation Models (lavaan)
 
 ```{r}
 #| label: tbl-h7-sem
 #| tbl-cap: "H7 SEM Mediation: lavaan Path Estimates"
-#| results: asis
-# Modelsummary or custom table for lavaan objects
+sem_rows <- Filter(Negate(is.null), list(
+  extract_sem_params(h7_sem$fit_sem_religious, "Religious"),
+  extract_sem_params(h7_sem$fit_sem_party, "Party Elite")
+))
+if (length(sem_rows) > 0) {
+  knitr::kable(do.call(rbind, sem_rows), row.names = FALSE)
+} else {
+  cat("SEM models did not converge or produced no results.")
+}
 ```
 
 ## H8: Moderation --- Dynamic Leadership
@@ -129,10 +181,10 @@ The results indicate a significant Average Causal Mediation Effect (ACME) for re
 #| tbl-cap: "H8: Dynamic Leadership Moderation (Conflict Initiation and Targeting)"
 build_model_table(
   list(
-    "Init (Main)" = h8_init$h8_init_main,
-    "Init (Int)" = h8_init$h8_init_int,
+    "Init (Main)"   = h8_init$h8_init_main,
+    "Init (Int)"    = h8_init$h8_init_int,
     "Target (Main)" = h8_target$h8_target_main,
-    "Target (Int)" = h8_target$h8_target_int
+    "Target (Int)"  = h8_target$h8_target_int
   )
 )
 ```
@@ -148,9 +200,9 @@ As shown in @tbl-h8, the interaction between `legit_ratio` and `sidea_dynamic_le
 #| tbl-cap: "H9: Leader Survival and Ideological Conflict (Cox PH Models)"
 build_model_table(
   list(
-    "(1) Direct" = h9_survival$cox_h9_direct,
-    "(2) +Legit" = h9_survival$cox_h9_ideology,
-    "(3) +Ratio" = h9_survival$cox_h9_ratio,
+    "(1) Direct"      = h9_survival$cox_h9_direct,
+    "(2) +Legit"      = h9_survival$cox_h9_ideology,
+    "(3) +Ratio"      = h9_survival$cox_h9_ratio,
     "(4) Interaction" = h9_survival$cox_h9_int_ratio
   )
 )
