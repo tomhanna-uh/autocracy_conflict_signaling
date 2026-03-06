@@ -3,6 +3,7 @@
 # Load required scripts
 source(here::here("R", "00_packages.R"))
 source(here::here("R", "02_data_prep.R"))
+source("R/helpers.R")  
 
 # Variable note (monadic leader-level data: monadic_ready):
 # avg_ideological_legit    = leader-period mean of v2exl_legitideol_a (M1 mediator)
@@ -21,20 +22,7 @@ source(here::here("R", "02_data_prep.R"))
 # avg_other_legit          = leader-period mean of non-ideological legitimation (M2)
 # All variables sourced from monadic_ready (built in 02_data_prep.R)
 
-# ==============================================================================
-# Helper: safe VIF
-# ==============================================================================
-safe_vif <- function(model, label = deparse(substitute(model))) {
-  tryCatch({
-    v <- car::vif(model)
-    if (is.matrix(v)) v <- v[, "GVIF"]
-    message(sprintf("[05_m1_m2] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
-    v
-  }, error = function(e) {
-    message(sprintf("[05_m1_m2] VIF failed for %s: %s", label, e$message))
-    NULL
-  })
-}
+
 
 # =============================================================================
 # M1: Ideological Legitimation as Mediator

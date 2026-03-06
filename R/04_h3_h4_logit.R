@@ -10,6 +10,7 @@
 # Load required scripts
 source(here::here("R", "00_packages.R"))
 source(here::here("R", "02_data_prep.R"))
+source("R/helpers.R")  
 
 # ------------------------------------------------------------------------------
 # Variable note:
@@ -63,60 +64,8 @@ strip_glm <- function(model) {
   model
 }
 
-safe_glm <- function(formula, data, min_obs = 30) {
-  vars <- all.vars(formula)
-  for (v in vars) {
-    if (!v %in% names(data)) {
-      warning(sprintf("[04] Variable '%s' not found. Skipping.", v))
-      return(NULL)
-    }
-    if (all(is.na(data[[v]]))) {
-      warning(sprintf("[04] Variable '%s' is entirely NA. Skipping.", v))
-      return(NULL)
-    }
-  }
-  complete <- complete.cases(data[, vars, drop = FALSE])
-  n_complete <- sum(complete)
-  if (n_complete < min_obs) {
-    warning(sprintf("[04] Only %d complete cases (need >= %d). Skipping.", n_complete, min_obs))
-    return(NULL)
-  }
-  if (requireNamespace("brglm2", quietly = TRUE)) {
-    fit <- tryCatch(
-      glm(formula, family = binomial(link = "logit"), data = data,
-          method = brglm2::brglmFit,
-          control = list(maxit = 300, epsilon = 1e-6)),
-      error = function(e) { warning(sprintf("[04] brglm2 failed: %s", e$message)); NULL }
-    )
-    if (!is.null(fit)) {
-      message(sprintf("[04] Firth logit: %d obs, converged = %s", n_complete, fit$converged))
-      return(strip_glm(fit))
-    }
-  }
-  fit <- tryCatch(
-    glm(formula, family = binomial(link = "logit"), data = data,
-        control = glm.control(maxit = 100)),
-    error = function(e) { warning(sprintf("[04] glm() failed: %s", e$message)); NULL }
-  )
-  if (!is.null(fit) && !fit$converged) warning("[04] glm() did not converge.")
-  strip_glm(fit)
-}
 
-# ------------------------------------------------------------------------------
-# Helper: safe VIF computation
-# ------------------------------------------------------------------------------
-safe_vif <- function(model, label = "") {
-  if (is.null(model)) return(NULL)
-  tryCatch({
-    v <- car::vif(model)
-    if (is.matrix(v)) v <- v[, "GVIF"]
-    message(sprintf("[04] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
-    v
-  }, error = function(e) {
-    message(sprintf("[04] VIF failed for %s: %s", label, e$message))
-    NULL
-  })
-}
+
 
 # ==============================================================================
 # 1. Hypothesis 3: The Rational Autocrat -- Initiation ----
@@ -182,13 +131,14 @@ estimate_h4_logit <- function(data) {
                             sidea_ethnic_racial_support +
                             cinc_a + sidea_winning_coalition_size, data = conflict_data)
 
-  h4_full     <- safe_glm(targets_democracy ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a + sidea_winning_coalition_size +
-                            t + cold_war, data = conflict_data)
+  h4_full <- safe_glm(targets_democracy ~ sidea_religious_support +
+                              sidea_party_elite_support +
+                              sidea_rural_worker_support +
+                              sidea_military_support +
+                              sidea_ethnic_racial_support +
+                              cinc_a + sidea_winning_coalition_size +
+                              t_scaled + cold_war,   # <-- Change t to t_scaled
+                      data = conflict_data)
 
   list(h4_baseline = h4_baseline, h4_party = h4_party,
        h4_military = h4_military, h4_multi = h4_multi,

@@ -172,7 +172,7 @@ pred_h5 <- data.frame(
     cinc_a = mean(dyad_ready$cinc_a, na.rm = TRUE),
     sidea_winning_coalition_size = mean(dyad_ready$sidea_winning_coalition_size, na.rm = TRUE),
     cold_war = 0,
-    t = 0, t2 = 0, t3 = 0
+    t_scaled = 0, t2_scaled = 0, t3_scaled = 0
   )
 
 pred_h5 <- pred_h5 %>%
@@ -188,6 +188,13 @@ ggplot(pred_h5, aes(x = legit_ratio, y = fit)) +
     subtitle = "Other variables held at means; Cold War = 0; Targets Democracy = 0"
   )
 ```
+
+if (is.null(h5_logit_models$h5_full)) {
+  cat("H5 full model skipped — no predictions available.")
+} else {
+  pred_h5 <- pred_h5 %>% bind_cols(safe_predict(h5_logit_models$h5_full, pred_h5))
+  # Then ggplot
+}
 
 ## H6: Legitimation Mix and Democracy Targeting
 

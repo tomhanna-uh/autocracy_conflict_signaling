@@ -10,6 +10,7 @@
     # Load required scripts
     source(here::here("R", "00_packages.R"))
     source(here::here("R", "02_data_prep.R"))
+    source("R/helpers.R")  
 
 # ------------------------------------------------------------------------------
 # Variable note:
@@ -66,75 +67,6 @@ strip_glm <- function(model) {
     model
 }
 
-# ------------------------------------------------------------------------------
-# Helper: safely fit a logit model.
-# ------------------------------------------------------------------------------
-safe_glm <- function(formula, data, min_obs = 30) {
-    vars <- all.vars(formula)
-    for (v in vars) {
-        if (!v %in% names(data)) {
-            warning(sprintf("[03] Variable '%s' not found in data. Skipping model.", v))
-            return(NULL)
-        }
-        if (all(is.na(data[[v]]))) {
-            warning(sprintf("[03] Variable '%s' is entirely NA. Skipping model.", v))
-            return(NULL)
-        }
-    }
-    complete <- complete.cases(data[, vars, drop = FALSE])
-    n_complete <- sum(complete)
-    if (n_complete < min_obs) {
-        warning(sprintf(
-            "[03] Only %d complete cases for model (need >= %d). Skipping.",
-            n_complete, min_obs
-        ))
-        return(NULL)
-    }
-    if (requireNamespace("brglm2", quietly = TRUE)) {
-        fit <- tryCatch(
-            glm(formula, family = binomial(link = "logit"), data = data,
-                method = brglm2::brglmFit,
-                control = list(maxit = 300, epsilon = 1e-6)),
-            error = function(e) {
-                warning(sprintf("[03] brglm2 failed: %s. Trying standard glm.", e$message))
-                NULL
-            }
-        )
-        if (!is.null(fit)) {
-            message(sprintf("[03] Firth logit: %d obs, converged = %s",
-                            n_complete, fit$converged))
-            return(strip_glm(fit))
-        }
-    }
-    fit <- tryCatch(
-        glm(formula, family = binomial(link = "logit"), data = data,
-            control = glm.control(maxit = 100)),
-        error = function(e) {
-            warning(sprintf("[03] glm() failed: %s", e$message))
-            NULL
-        }
-    )
-    if (!is.null(fit) && !fit$converged) {
-        warning("[03] glm() did not converge even with maxit = 100.")
-    }
-    strip_glm(fit)
-}
-
-# ------------------------------------------------------------------------------
-# Helper: safe VIF computation
-# ------------------------------------------------------------------------------
-safe_vif <- function(model, label = "") {
-    if (is.null(model)) return(NULL)
-    tryCatch({
-        v <- car::vif(model)
-        if (is.matrix(v)) v <- v[, "GVIF"]
-        message(sprintf("[03] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
-        v
-    }, error = function(e) {
-        message(sprintf("[03] VIF failed for %s: %s", label, e$message))
-        NULL
-    })
-}
 
 # ==============================================================================
 # 1. Hypothesis 1: The Ideological Autocrat -- Initiation ----

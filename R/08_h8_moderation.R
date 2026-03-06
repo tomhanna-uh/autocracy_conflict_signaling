@@ -6,6 +6,7 @@
 
 source(here::here("R", "00_packages.R"))
 source(here::here("R", "02_data_prep.R"))
+source("R/helpers.R") 
 
 # ------------------------------------------------------------------------------
 # Memory: subset dyad_ready to needed columns
@@ -35,26 +36,6 @@ strip_glm <- function(model) {
   model
 }
 
-safe_glm <- function(formula, data, family = binomial(link = "logit"), min_obs = 30) {
-  vars <- all.vars(formula)
-  for (v in vars) {
-    if (!v %in% names(data)) { warning(sprintf("[08] '%s' not found. Skipping.", v)); return(NULL) }
-    if (all(is.na(data[[v]]))) { warning(sprintf("[08] '%s' all NA. Skipping.", v)); return(NULL) }
-  }
-  if (sum(complete.cases(data[, vars, drop = FALSE])) < min_obs) {
-    warning("[08] Insufficient complete cases. Skipping."); return(NULL)
-  }
-  if (requireNamespace("brglm2", quietly = TRUE) && identical(family$family, "binomial")) {
-    fit <- tryCatch(glm(formula, family = family, data = data, method = brglm2::brglmFit,
-                        control = list(maxit = 300, epsilon = 1e-6)),
-                    error = function(e) NULL)
-    if (!is.null(fit)) return(strip_glm(fit))
-  }
-  fit <- tryCatch(glm(formula, family = family, data = data, control = glm.control(maxit = 100)),
-                  error = function(e) { warning(sprintf("[08] glm failed: %s", e$message)); NULL })
-  strip_glm(fit)
-}
-
 safe_lm <- function(formula, data, min_obs = 30) {
   vars <- all.vars(formula)
   for (v in vars) {
@@ -68,20 +49,6 @@ safe_lm <- function(formula, data, min_obs = 30) {
   strip_glm(fit)  # works for lm too
 }
 
-# ==============================================================================
-# Helper: safe VIF
-# ==============================================================================
-safe_vif <- function(model, label = deparse(substitute(model))) {
-  tryCatch({
-    v <- car::vif(model)
-    if (is.matrix(v)) v <- v[, "GVIF"]
-    message(sprintf("[08] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
-    v
-  }, error = function(e) {
-    message(sprintf("[08] VIF failed for %s: %s", label, e$message))
-    NULL
-  })
-}
 
 # ==============================================================================
 # 1. H8 -- Dynamic Leadership and Conflict Initiation ----

@@ -5,6 +5,7 @@
 # ==============================================================================
 source(here::here("R", "00_packages.R"))
 source(here::here("R", "02_data_prep.R"))
+source("R/helpers.R")  
 
 # ------------------------------------------------------------------------------
 # Memory: subset dyad_ready to needed columns
@@ -36,20 +37,7 @@ strip_glm <- function(model) {
   model
 }
 
-# ==============================================================================
-# Helper: safe VIF
-# ==============================================================================
-safe_vif <- function(model, label = deparse(substitute(model))) {
-  tryCatch({
-    v <- car::vif(model)
-    if (is.matrix(v)) v <- v[, "GVIF"]
-    message(sprintf("[07] VIF (%s): max = %.2f", label, max(v, na.rm = TRUE)))
-    v
-  }, error = function(e) {
-    message(sprintf("[07] VIF failed for %s: %s", label, e$message))
-    NULL
-  })
-}
+
 
 # ==============================================================================
 # 1. Baron-Kenny Mediation (mediation package) ----
