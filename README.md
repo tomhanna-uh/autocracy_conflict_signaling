@@ -167,6 +167,7 @@ For consistency across scripts, Quarto documents, and output tables:
 
 - [2024_Research_Conflict_Ideology](https://github.com/tomhanna-uh/2024_Research_Conflict_Ideology) — Prior version with GRAVE-D support group and ideology models (Selectorate Theory framing)
 - [2025_grave_d_conflict](https://github.com/tomhanna-uh/2025_grave_d_conflict) — Prior version with V-Dem legitimation mix and survival analysis
+- [NAGS_Signaling](https://github.com/tomhanna-uh/nags_signaling) - Papers 2 and 3 on this topic which focus on support for foreign Non-State Armed Groups as signaling to domestic support and opposition groups. 
 
 ---
 
