@@ -4,7 +4,7 @@
 **ORCID:** 0000-0002-8054-0335
 **Affiliation:** University of Houston, Department of Political Science
 **License:** [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)
-**Copyright:** Tom Hanna, 2020–2025
+**Copyright:** Tom Hanna, 2020–2026
 
 ---
 
@@ -18,45 +18,45 @@ I argue that ideological dictators use revisionist demands to send signals of id
 
 ## Theoretical Framework
 
-Three ideal types structure the theory:
+Three ideal types structure the theory of why radical revisionist domestic ideologies in autocracies lead to revisionist international conflict demands and targeting of democracies. The framework treats **revisionist leadership ideology** as the core driver of the empirical pattern: higher revisionism predicts greater likelihood of originating revisionist MIDs and targeting ideological rivals (democracies). This baseline pattern is labeled **Ideological Autocrat** and is the shared empirical foundation across explanations.
 
-| Type | Core Claim | Key Mechanism |
-|---|---|---|
-| **The Ideological Autocrat** | Leadership ideology drives revisionist conflict | Direct preference expression |
-| **The Rational Autocrat** | Support group ideology drives conflict as costly signal | Coalition loyalty maintenance |
-| **The Messianic Autocrat** | Dynamic personal leadership drives conflict | Leader charisma / personal drive |
+The two explanatory subtypes then compete to account for *why* this pattern emerges:
 
-The Rational Autocrat argument is the primary theoretical contribution. The Ideological and Messianic Autocrat claims are treated as competing hypotheses.
+| Type                        | Core Claim                                                                 | Key Mechanism / Explanation                                                                 |
+|-----------------------------|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| **The Ideological Autocrat** (Baseline) | Revisionist leadership ideology predicts revisionist conflict initiation and targeting of democracies. | This is the core empirical baseline pattern observed across autocracies; it does not specify the underlying driver and serves as the foundation that both explanatory types seek to explain. |
+| **The Rational Autocrat** (Primary Explanation) | The baseline pattern arises because rational leaders instrumentally use revisionist conflict as a costly signal of ideological commitment to their domestic revisionist winning coalitions. | Coalition loyalty maintenance via nonmaterial payoffs: visible conflict satisfies ideological supporters, enhances legitimation, and boosts leader survival—independent of personal normative zeal. |
+| **The Messianic Autocrat** (Competing Alternative) | The baseline pattern arises because dynamic, charismatic leaders personally pursue revisionist normative goals abroad. | Leader charisma / personal drive: conflict reflects the leader's own ideological preferences and boldness, rather than calculated coalition signaling. |
 
----
+The Rational Autocrat argument is the primary theoretical contribution: revisionist conflict serves as a costly signal to maintain loyalty among ideologically aligned support groups, tested against the alternatives. The Ideological Autocrat hypotheses establish the baseline association, while Rational and Messianic hypotheses test competing mechanisms through interactions, mediation, moderation, and survival outcomes.
 
 ## Hypotheses
 
-All hypotheses are listed in order from simplest to most complex model tier.
+All hypotheses are listed in order from simplest to most complex model tier. All apply among autocracies and use dyadic MID data.
 
-### Tier 1 — Simple Logistic Regression
+### Tier 1 — Simple Logistic Regression (Baseline Pattern)
 
-| Label | Substantive Name | Statement | Old Source |
-|---|---|---|---|
-| **H1** | The Ideological Autocrat — Initiation | Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate a revisionist MID than other autocratic states, all else equal. | 2024 H2a; 2025 H1 |
-| **H2** | The Ideological Autocrat — Targeting | Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate revisionist MIDs targeting democracies than other autocratic states, all else equal. | 2024 H2b; 2025 H2 |
-| **H3** | The Rational Autocrat — Initiation | Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate a revisionist MID than other autocratic states, all else equal. | 2024 H1a |
-| **H4** | The Rational Autocrat — Targeting | Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate MIDs targeting democracies than other autocratic states, all else equal. | 2024 H1b |
+| Label | Substantive Name                          | Statement                                                                                          | Old Source              | Tests Which Type?          |
+|-------|-------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------------|----------------------------|
+| **H1** | The Ideological Autocrat — Initiation     | Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate a revisionist MID than other autocratic states, all else equal. | 2024 H2a; 2025 H1      | Baseline (Ideological Autocrat pattern) |
+| **H2** | The Ideological Autocrat — Targeting      | Autocratic states with higher levels of revisionist domestic leadership ideology will be more likely to originate revisionist MIDs targeting democracies than other autocratic states, all else equal. | 2024 H2b; 2025 H2      | Baseline (Ideological Autocrat pattern) |
+| **H3** | The Rational Autocrat — Initiation        | Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate a revisionist MID than other autocratic states, all else equal. | 2024 H1a               | Rational Autocrat explanation |
+| **H4** | The Rational Autocrat — Targeting         | Autocratic states with higher levels of regime support from groups associated with revisionist ideologies will be more likely to originate MIDs targeting democracies than other autocratic states, all else equal. | 2024 H1b               | Rational Autocrat explanation |
 
 ### Tier 2 — Legitimation Mix (Logistic + Hurdle Models)
 
-| Label | Substantive Name | Statement | Old Source |
-|---|---|---|---|
-| **H5** | Legitimation Mix — Initiation | The relative dependence on ideological legitimation (compared to performance or personalist legitimation) increases the likelihood of conflict initiation, all else equal. | 2025 H3 |
-| **H6** | Legitimation Mix — Targeting | The relative dependence on ideological legitimation increases the likelihood of targeting democracies, all else equal. | 2025 H4 |
+| Label | Substantive Name                          | Statement                                                                                          | Old Source              | Tests Which Type?          |
+|-------|-------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------------|----------------------------|
+| **H5** | Legitimation Mix — Initiation             | The relative dependence on ideological legitimation (compared to performance or personalist legitimation) increases the likelihood of conflict initiation, all else equal. | 2025 H3                | Rational vs. Messianic     |
+| **H6** | Legitimation Mix — Targeting              | The relative dependence on ideological legitimation increases the likelihood of targeting democracies, all else equal. | 2025 H4                | Rational vs. Messianic     |
 
-### Tier 3 — Mediation, Moderation, and Survival
+### Tier 3 — Mediation, Moderation, and Survival (Mechanisms and Outcomes)
 
-| Label | Substantive Name | Statement | Old Source |
-|---|---|---|---|
-| **H7** | Mediation — Support Groups | The effect of revisionist leadership ideology on targeting democracies is mediated by the leader's dependence on ideologically associated support groups. | 2024 H3 / SEM |
-| **H8** | Moderation — Dynamic Leadership | Dynamic personal leadership qualities moderate (amplify) the effect of revisionist ideology on conflict behavior (Messianic Autocrat test). | 2024 A1/A2/A3 |
-| **H9** | Survival Mediation | Conflict initiation against ideological targets increases leader survival by enhancing domestic ideological legitimation. | 2025 M1/M2 |
+| Label | Substantive Name                          | Statement                                                                                          | Old Source              | Tests Which Type?          |
+|-------|-------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------------|----------------------------|
+| **H7** | Mediation — Support Groups                | The effect of revisionist leadership ideology on targeting democracies is mediated by the leader's dependence on ideologically associated support groups. | 2024 H3 / SEM          | Rational explanation       |
+| **H8** | Moderation — Dynamic Leadership           | Dynamic personal leadership qualities moderate (amplify) the effect of revisionist ideology on conflict behavior (Messianic Autocrat test). | 2024 A1/A2/A3          | Messianic explanation      |
+| **H9** | Survival Mediation                        | Conflict initiation against ideological targets increases leader survival by enhancing domestic ideological legitimation. | 2025 M1/M2             | Rational explanation       |
 
 ---
 
@@ -167,6 +167,7 @@ For consistency across scripts, Quarto documents, and output tables:
 
 - [2024_Research_Conflict_Ideology](https://github.com/tomhanna-uh/2024_Research_Conflict_Ideology) — Prior version with GRAVE-D support group and ideology models (Selectorate Theory framing)
 - [2025_grave_d_conflict](https://github.com/tomhanna-uh/2025_grave_d_conflict) — Prior version with V-Dem legitimation mix and survival analysis
+- [NAGS_Signaling](https://github.com/tomhanna-uh/nags_signaling) - Papers 2 and 3 on this topic which focus on support for foreign Non-State Armed Groups as signaling to domestic support and opposition groups. 
 
 ---
 
