@@ -10,6 +10,11 @@
 #   source(here::here("R", "01_load_data.R"))
 # =============================================================================
 
+# ADD THIS AT THE VERY TOP OF R/02_data_prep.R (after libraries)
+rm(list = c("dyad_ready", "monadic_ready"), envir = .GlobalEnv)
+message("[FORCE] Removed existing dyad_ready/monadic_ready to force full prep.")
+
+
 library(here)
 library(tidyverse)
 

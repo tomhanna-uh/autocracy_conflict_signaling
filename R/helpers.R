@@ -86,25 +86,18 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"),
         
         # 3. Try Firth bias-reduced logistic regression first (handles separation best)
         fit <- tryCatch(
-                glm(formula,
-                    family = family,
-                    data = data,
+                glm(formula, family = family, data = data,
                     method = brglm2::brglmFit,
-                    control = brglm2::brglm_control(maxit = 1000,          # Higher iterations
-                                                    epsilon = 1e-8,
-                                                    slowit = 0.5,          # Helps oscillating cases
-                                                    response_adjustment = TRUE),
-                    ...),
-                warning = function(w) {
-                        message("[safe_glm] brglmFit warning: ", w$message)
-                        NULL  # Continue to fallback
-                },
-                error = function(e) {
-                        message("[safe_glm] brglmFit failed: ", e$message, ". Trying ordinary glm...")
-                        NULL
-                }
+                    control = brglm2::brglm_control(
+                            maxit = 2000,            # increase iterations
+                            epsilon = 1e-10,
+                            slowit = 0.1,            # slow acceleration if oscillating
+                            response_adjustment = TRUE,
+                            type = "AS_mean"         # alternative mean bias reduction (often more stable)
+                    )),
+                warning = function(w) { message("[safe_glm] brglm warning: ", w$message); NULL },
+                error = function(e) { message("[safe_glm] brglm error: ", e$message); NULL }
         )
-        
         # 4. Fallback to standard glm if Firth didn't work
         if (is.null(fit)) {
                 fit <- tryCatch(

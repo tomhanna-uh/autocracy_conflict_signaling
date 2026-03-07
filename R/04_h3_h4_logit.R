@@ -36,7 +36,7 @@ h34_vars <- c(
   "sidea_rural_worker_support", "sidea_military_support",
   "sidea_ethnic_racial_support",
   "cinc_a", "sidea_winning_coalition_size",
-  "t", "t2", "t3", "cold_war"
+  "t_scaled", "t2_scaled", "t3_scaled", "cold_war"
 )
 h34_vars <- intersect(h34_vars, names(dyad_ready))
 h34_data <- dyad_ready[, h34_vars, drop = FALSE]

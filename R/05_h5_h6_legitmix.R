@@ -18,7 +18,7 @@ h56_vars <- c(
   "v2exl_legitideol_a", "v2exl_legitperf_a", "v2exl_legitlead_a",
   "sidea_revisionist_domestic",
   "cinc_a", "sidea_winning_coalition_size",
-  "t", "t2", "t3", "cold_war"
+  "t_scaled", "t2_scaled", "t3_scaled", "cold_war"
 )
 h56_vars <- intersect(h56_vars, names(dyad_ready))
 h56_data <- dyad_ready[, h56_vars, drop = FALSE]

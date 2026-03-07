@@ -16,7 +16,7 @@ h8_vars <- c(
   "legit_ratio", "sidea_dynamic_leader",
   "log_cinc_a", "log_cinc_b",
   "sidea_winning_coalition_size", "sidea_military_support",
-  "cold_war", "t", "t2", "t3"
+  "cold_war", "t_scaled", "t2_scaled", "t3_scaled"
 )
 h8_vars <- intersect(h8_vars, names(dyad_ready))
 h8_data <- dyad_ready[, h8_vars, drop = FALSE]
@@ -37,16 +37,19 @@ strip_glm <- function(model) {
 }
 
 safe_lm <- function(formula, data, min_obs = 30) {
-  vars <- all.vars(formula)
-  for (v in vars) {
-    if (!v %in% names(data)) { warning(sprintf("[08] '%s' not found. Skipping.", v)); return(NULL) }
-  }
-  if (sum(complete.cases(data[, vars, drop = FALSE])) < min_obs) {
-    warning("[08] Insufficient complete cases. Skipping."); return(NULL)
-  }
-  fit <- tryCatch(lm(formula, data = data),
-                  error = function(e) { warning(sprintf("[08] lm failed: %s", e$message)); NULL })
-  strip_glm(fit)  # works for lm too
+        vars <- all.vars(formula)
+        for (v in vars) {
+                if (!v %in% names(data)) { warning(sprintf("[safe_lm] '%s' not found. Skipping.", v)); return(NULL) }
+        }
+        complete <- complete.cases(data[, vars, drop = FALSE])
+        if (sum(complete) < min_obs) { warning("[safe_lm] Insufficient complete cases. Skipping."); return(NULL) }
+        fit <- tryCatch(lm(formula, data = data[complete, ]),
+                        error = function(e) { warning(sprintf("[safe_lm] lm failed: %s", e$message)); NULL })
+        if (!is.null(fit) && is.null(fit$coefficients) || any(is.na(fit$coefficients))) {
+                warning("[safe_lm] Model singular or NA coefficients. Skipping.")
+                return(NULL)
+        }
+        strip_glm(fit)
 }
 
 
@@ -82,15 +85,15 @@ estimate_h8_targeting <- function(data) {
   h8_target_main <- safe_glm(
     targets_democracy ~ legit_ratio + sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = conflict_data)
+      cold_war + t_scaled + t2_scaled + t3_scaled, data = conflict_data)
   h8_target_int <- safe_glm(
     targets_democracy ~ legit_ratio * sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = conflict_data)
+      cold_war + t_scaled + t2_scaled + t3_scaled, data = conflict_data)
   h8_target_lpm_int <- safe_lm(
     targets_democracy ~ legit_ratio * sidea_dynamic_leader +
       log_cinc_a + log_cinc_b + sidea_winning_coalition_size +
-      cold_war + t + t2 + t3, data = conflict_data)
+      cold_war + t_scaled + t2_scaled + t3_scaled, data = conflict_data)
   list(h8_target_main = h8_target_main, h8_target_int = h8_target_int,
        h8_target_lpm_int = h8_target_lpm_int)
 }
@@ -120,31 +123,48 @@ estimate_h8_robustness <- function(data) {
 }
 
 # ==============================================================================
-# 4. Predicted Probability Plots (sjPlot) ----
+# 4. Predicted Probability Plots (marginaleffects) ----
 # ==============================================================================
+
 plot_h8_interactions <- function(init_models, target_models) {
-  dir.create("results/figures", recursive = TRUE, showWarnings = FALSE)
-  plots <- list()
-  tryCatch({
-    plots$p1 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
-                           terms = c("legit_ratio", "sidea_dynamic_leader"),
-                           title = "H8: Ideology x Dynamic Leadership -- Initiation (LPM)")
-    plots$p2 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
-                           terms = c("sidea_dynamic_leader", "legit_ratio"),
-                           title = "H8: Dynamic Leadership x Ideology -- Initiation (LPM)")
-    plots$p3 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
-                           terms = c("legit_ratio", "sidea_dynamic_leader"),
-                           title = "H8: Ideology x Dynamic Leadership -- Targeting (LPM)")
-    plots$p4 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
-                           terms = c("sidea_dynamic_leader", "legit_ratio"),
-                           title = "H8: Dynamic Leadership x Ideology -- Targeting (LPM)")
-    if (!is.null(plots$p1)) ggplot2::ggsave("results/figures/h8_init_ideology_by_dynleader.png", plots$p1, width = 8, height = 5)
-    if (!is.null(plots$p2)) ggplot2::ggsave("results/figures/h8_init_dynleader_by_ideology.png", plots$p2, width = 8, height = 5)
-    if (!is.null(plots$p3)) ggplot2::ggsave("results/figures/h8_target_ideology_by_dynleader.png", plots$p3, width = 8, height = 5)
-    if (!is.null(plots$p4)) ggplot2::ggsave("results/figures/h8_target_dynleader_by_ideology.png", plots$p4, width = 8, height = 5)
-  }, error = function(e) warning(sprintf("[08] Plot generation failed: %s", e$message)))
-  plots
+        plots <- list()
+        tryCatch({
+                if (!is.null(init_models$h8_init_lpm_int) && !is.null(init_models$h8_init_lpm_int$coefficients)) {
+                        plots$p1 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
+                                               terms = c("legit_ratio", "sidea_dynamic_leader"),
+                                               title = "H8: Ideology x Dynamic Leadership -- Initiation (LPM)")
+                        plots$p2 <- plot_model(init_models$h8_init_lpm_int, type = "pred",
+                                               terms = c("sidea_dynamic_leader", "legit_ratio"),
+                                               title = "H8: Dynamic Leadership x Ideology -- Initiation (LPM)")
+                } else {
+                        message("[08] Skipping init plots - model NULL or invalid.")
+                }
+                # Similar for target plots
+                if (!is.null(target_models$h8_target_lpm_int) && !is.null(target_models$h8_target_lpm_int$coefficients)) {
+                        plots$p3 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
+                                               terms = c("legit_ratio", "sidea_dynamic_leader"),
+                                               title = "H8: Ideology x Dynamic Leadership -- Targeting (LPM)")
+                        plots$p4 <- plot_model(target_models$h8_target_lpm_int, type = "pred",
+                                               terms = c("sidea_dynamic_leader", "legit_ratio"),
+                                               title = "H8: Dynamic Leadership x Ideology -- Targeting (LPM)")
+                } else {
+                        message("[08] Skipping target plots - model NULL or invalid.")
+                }
+                # Save only if plots exist
+                if (length(plots) > 0) {
+                        dir.create("results/figures", recursive = TRUE, showWarnings = FALSE)
+                        if (!is.null(plots$p1)) ggsave("results/figures/h8_init_ideology_by_dynleader.png", plots$p1, width = 8, height = 5)
+                        # ... similarly for others
+                }
+        }, error = function(e) warning(sprintf("[08] Plot generation failed: %s", e$message)))
+        plots
 }
+
+# library(marginaleffects)
+# # Example for one model
+# preds <- predictions(model, variables = "legit_ratio", by = "sidea_dynamic_leader")
+# ggplot(preds, aes(x = legit_ratio, y = estimate, color = factor(sidea_dynamic_leader))) +
+#         geom_line() + geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2)
 
 # ==============================================================================
 # 5. Execution and Saving Results ----

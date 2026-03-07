@@ -17,7 +17,7 @@ h7_vars <- c(
   "sidea_rural_worker_support", "sidea_military_support",
   "sidea_ethnic_racial_support",
   "cinc_a", "sidea_winning_coalition_size",
-  "t", "cold_war"
+  "t_scaled", "cold_war"
 )
 h7_vars <- intersect(h7_vars, names(dyad_ready))
 h7_data <- dyad_ready[, h7_vars, drop = FALSE]
@@ -57,7 +57,7 @@ estimate_h7_component_models <- function(data) {
                     data = conflict_data)
   b_religious <- glm(targets_democracy ~ sidea_revisionist_domestic +
                        sidea_religious_support + cinc_a +
-                       sidea_winning_coalition_size + t + cold_war,
+                       sidea_winning_coalition_size +t_scaled+ cold_war,
                      family = binomial(link = "logit"), data = conflict_data)
   # Party elite support
   a_party <- lm(sidea_party_elite_support ~ sidea_revisionist_domestic +
@@ -65,7 +65,7 @@ estimate_h7_component_models <- function(data) {
                 data = conflict_data)
   b_party <- glm(targets_democracy ~ sidea_revisionist_domestic +
                    sidea_party_elite_support + cinc_a +
-                   sidea_winning_coalition_size + t + cold_war,
+                   sidea_winning_coalition_size +t_scaled+ cold_war,
                  family = binomial(link = "logit"), data = conflict_data)
   # Military support
   a_military <- lm(sidea_military_support ~ sidea_revisionist_domestic +
@@ -73,7 +73,7 @@ estimate_h7_component_models <- function(data) {
                    data = conflict_data)
   b_military <- glm(targets_democracy ~ sidea_revisionist_domestic +
                       sidea_military_support + cinc_a +
-                      sidea_winning_coalition_size + t + cold_war,
+                      sidea_winning_coalition_size +t_scaled+ cold_war,
                     family = binomial(link = "logit"), data = conflict_data)
   list(a_religious = a_religious, b_religious = b_religious,
        a_party = a_party, b_party = b_party,

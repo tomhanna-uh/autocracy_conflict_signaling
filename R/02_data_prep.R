@@ -184,38 +184,44 @@ message(sprintf("[02] Cleanup done. dyad_ready: %s, monadic_ready: %s",
 # Identifying columns (dyad, year, country codes) are retained for merging.
 # ==============================================================================
 
+
 # --- dyad_ready: keep IDs + all variables used across 03-08 scripts -----------
 dyad_keep <- c(
-  # Identifiers
-  "dyad", "year", "COWcode_a", "COWcode_b", "ccode1", "ccode2",
-  "statea", "stateb",
-  # Outcomes
-  "mid_initiated", "targets_democracy",
-  # H1 IVs (leader ideology composite + sub-types)
-  "sidea_revisionist_domestic",
-  "sidea_religious_revisionist_domestic",
-  "sidea_socialist_revisionist_domestic",
-  "sidea_nationalist_revisionist_domestic",
-  "sidea_reactionary_revisionist_domestic",
-  "sidea_separatist_revisionist_domestic",
-  # H3/H4 IVs (support group variables)
-  "sidea_religious_support", "sidea_party_elite_support",
-  "sidea_rural_worker_support", "sidea_military_support",
-  "sidea_ethnic_racial_support",
-  # H5/H6 IVs (legitimation mix)
-  "legit_ratio", "legit_total",
-  "v2exl_legitideol_a", "v2exl_legitperf_a", "v2exl_legitlead_a",
-  # H8 IVs (moderation)
-  "sidea_dynamic_leader",
-  # Controls
-  "cinc_a", "log_cinc_a", "log_cinc_b",
-  "sidea_winning_coalition_size",
-  "cold_war", "t", "t2", "t3"
+        # Identifiers
+        "dyad", "year", "COWcode_a", "COWcode_b", "ccode1", "ccode2",
+        "statea", "stateb",
+        # Outcomes
+        "mid_initiated", "targets_democracy",
+        # H1 IVs (leader ideology composite + sub-types)
+        "sidea_revisionist_domestic",
+        "sidea_religious_revisionist_domestic",
+        "sidea_socialist_revisionist_domestic",
+        "sidea_nationalist_revisionist_domestic",
+        "sidea_reactionary_revisionist_domestic",
+        "sidea_separatist_revisionist_domestic",
+        # H3/H4 IVs (support group variables)
+        "sidea_religious_support", "sidea_party_elite_support",
+        "sidea_rural_worker_support", "sidea_military_support",
+        "sidea_ethnic_racial_support",
+        # H5/H6 IVs (legitimation mix)
+        "legit_ratio", "legit_total",
+        "v2exl_legitideol_a", "v2exl_legitperf_a", "v2exl_legitlead_a",
+        # H8 IVs (moderation)
+        "sidea_dynamic_leader",
+        # Controls
+        "cinc_a", "log_cinc_a", "log_cinc_b",
+        "sidea_winning_coalition_size",
+        "cold_war",
+        # Temporal dependence (Carter-Signorino polynomial - scaled versions)
+        "t_scaled", "t2_scaled", "t3_scaled"
+        # Optional: keep unscaled if you still reference them somewhere
+        # "t", "t2", "t3"   # ← comment out or remove if fully switching to scaled
 )
+
 # Keep only columns that actually exist (some ID columns may vary by dataset)
 dyad_keep <- intersect(dyad_keep, names(dyad_ready))
 dyad_before <- ncol(dyad_ready)
-dyad_ready  <- dyad_ready[, dyad_keep, drop = FALSE]
+dyad_ready <- dyad_ready[, dyad_keep, drop = FALSE]
 message(sprintf("[02] dyad_ready subset: %d -> %d columns (%s)",
                 dyad_before, ncol(dyad_ready),
                 format(object.size(dyad_ready), units = "MB")))

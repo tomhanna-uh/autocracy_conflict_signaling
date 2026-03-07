@@ -38,7 +38,7 @@ h12_vars <- c(
     "sidea_reactionary_revisionist_domestic",
     "sidea_separatist_revisionist_domestic",
     "cinc_a", "sidea_winning_coalition_size",
-    "t", "t2", "t3", "cold_war"
+    "t_scaled", "t2_scaled", "t3_scaled", "cold_war"
 )
 # Keep only columns that actually exist (sub-types may be absent)
 h12_vars <- intersect(h12_vars, names(dyad_ready))
