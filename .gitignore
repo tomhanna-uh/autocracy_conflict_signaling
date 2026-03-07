@@ -124,3 +124,4 @@ secrets/
 *.pem
 Dissertation.bib
 .RDataTmp
+.RDataTmp1
