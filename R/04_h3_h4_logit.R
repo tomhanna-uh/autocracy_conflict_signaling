@@ -12,6 +12,9 @@ source(here::here("R", "00_packages.R"))
 source(here::here("R", "02_data_prep.R"))
 source("R/helpers.R")  
 
+
+message("[04] Starting model fitting at ", Sys.time())
+
 # ------------------------------------------------------------------------------
 # Variable note:
 # Support group IVs (GRAVE-D):
@@ -73,35 +76,39 @@ strip_glm <- function(model) {
 #       It is a parallel DV (used in H4), not a control.
 # ==============================================================================
 estimate_h3_logit <- function(data) {
-  h3_baseline <- safe_glm(mid_initiated ~ sidea_religious_support, data = data)
-  h3_party    <- safe_glm(mid_initiated ~ sidea_party_elite_support, data = data)
-  h3_military <- safe_glm(mid_initiated ~ sidea_military_support, data = data)
-
-  h3_multi    <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support, data = data)
-
-  h3_controls <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a + sidea_winning_coalition_size, data = data)
-
-  h3_full     <- safe_glm(mid_initiated ~ sidea_religious_support +
-                            sidea_party_elite_support +
-                            sidea_rural_worker_support +
-                            sidea_military_support +
-                            sidea_ethnic_racial_support +
-                            cinc_a +
-                            sidea_winning_coalition_size +
-                        t_scaled + t2_scaled + t3_scaled + cold_war + cold_war, data = data)
-
-  list(h3_baseline = h3_baseline, h3_party = h3_party,
-       h3_military = h3_military, h3_multi = h3_multi,
-       h3_controls = h3_controls, h3_full = h3_full)
+        message("[04] Fitting h3_baseline at ", Sys.time())
+        h3_baseline <- safe_glm(mid_initiated ~ sidea_religious_support, data = data)
+        
+        message("[04] Fitting h3_party at ", Sys.time())
+        h3_party <- safe_glm(mid_initiated ~ sidea_party_elite_support, data = data)
+        
+        message("[04] Fitting h3_military at ", Sys.time())
+        h3_military <- safe_glm(mid_initiated ~ sidea_military_support, data = data)
+        
+        message("[04] Fitting h3_multi at ", Sys.time())
+        h3_multi <- safe_glm(mid_initiated ~ sidea_religious_support +
+                                     sidea_party_elite_support +
+                                     sidea_rural_worker_support +
+                                     sidea_military_support +
+                                     sidea_ethnic_racial_support, data = data)
+        
+        message("[04] Fitting h3_controls at ", Sys.time())
+        h3_controls <- safe_glm(mid_initiated ~ sidea_religious_support +
+                                        sidea_party_elite_support +
+                                        sidea_rural_worker_support +
+                                        sidea_ethnic_racial_support +
+                                        cinc_a + sidea_winning_coalition_size, data = data)
+        
+        message("[04] Fitting h3_full at ", Sys.time())
+        h3_full <- safe_glm(mid_initiated ~ sidea_religious_support +
+                                    sidea_party_elite_support +
+                                    sidea_rural_worker_support +
+                                    sidea_ethnic_racial_support +
+                                    sidea_military_support, data = data)
+        
+        list(h3_baseline = h3_baseline, h3_party = h3_party,
+             h3_military = h3_military, h3_multi = h3_multi,
+             h3_controls = h3_controls, h3_full = h3_full)
 }
 
 # ==============================================================================
@@ -114,30 +121,31 @@ estimate_h4_logit <- function(data) {
     return(list(h4_baseline = NULL, h4_party = NULL, h4_military = NULL,
                 h4_multi = NULL, h4_controls = NULL, h4_full = NULL))
   }
+  message("[04] Fitting h4_baseline at ", Sys.time())
   h4_baseline <- safe_glm(targets_democracy ~ sidea_religious_support, data = conflict_data)
+  message("[04] Fitting h4_party at ", Sys.time())
   h4_party    <- safe_glm(targets_democracy ~ sidea_party_elite_support, data = conflict_data)
+  message("[04] Fitting h4_military at ", Sys.time())
   h4_military <- safe_glm(targets_democracy ~ sidea_military_support, data = conflict_data)
-
+  message("[04] Fitting h4_multi at ", Sys.time())
   h4_multi    <- safe_glm(targets_democracy ~ sidea_religious_support +
                             sidea_party_elite_support +
                             sidea_rural_worker_support +
                             sidea_military_support +
                             sidea_ethnic_racial_support, data = conflict_data)
-
+  message("[04] Fitting h4_controls at ", Sys.time())
   h4_controls <- safe_glm(targets_democracy ~ sidea_religious_support +
                             sidea_party_elite_support +
                             sidea_rural_worker_support +
-                            sidea_military_support +
                             sidea_ethnic_racial_support +
                             cinc_a + sidea_winning_coalition_size, data = conflict_data)
-
+  message("[04] Fitting h4_full at ", Sys.time())
   h4_full <- safe_glm(targets_democracy ~ sidea_religious_support +
                               sidea_party_elite_support +
                               sidea_rural_worker_support +
-                              sidea_military_support +
                               sidea_ethnic_racial_support +
-                              cinc_a + sidea_winning_coalition_size +
-                              t_scaled + cold_war,   # <-- Change t to t_scaled
+                              sidea_military_support +
+                              t_scaled,   # <-- Change t to t_scaled
                       data = conflict_data)
 
   list(h4_baseline = h4_baseline, h4_party = h4_party,

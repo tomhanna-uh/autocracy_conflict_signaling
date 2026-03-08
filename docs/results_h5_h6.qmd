@@ -70,6 +70,88 @@ extract_coefs <- function(model, model_name) {
   }, error = function(e) { message("Could not extract from ", model_name, ": ", e$message); NULL })
 }
 
+# Safe predict function that drops missing columns and
+# bypasses predict.glm -> summary crash
+safe_predict <- function(model, newdata) {
+  if (is.null(model) || length(coef(model)) == 0) {
+    message("[safe_predict] Model is NULL or has no coefficients. Returning NULL.")
+    return(NULL)
+  }
+
+  beta <- coef(model)
+  V <- try(safe_vcov(model), silent = TRUE)
+  if (inherits(V, "try-error") || is.null(V)) {
+    message("[safe_predict] Failed to get vcov. Returning point estimates only.")
+    V <- NULL
+  }
+
+  # Get the terms needed by the model
+  needed_vars <- all.vars(delete.response(terms(model)))
+  if (length(needed_vars) == 0) {
+    message("[safe_predict] No predictors in model. Returning intercept only.")
+    eta <- rep(coef(model)["(Intercept)"], nrow(newdata))
+    return(data.frame(fit = plogis(eta), lower = NA, upper = NA))
+  }
+
+  # Keep only columns that exist in newdata
+  avail_vars <- intersect(needed_vars, names(newdata))
+  missing_vars <- setdiff(needed_vars, avail_vars)
+  if (length(missing_vars) > 0) {
+    message("[safe_predict] Dropping missing predictors from newdata: ",
+            paste(missing_vars, collapse = ", "))
+  }
+
+  if (length(avail_vars) == 0 && "(Intercept)" %in% names(beta)) {
+    eta <- rep(beta["(Intercept)"], nrow(newdata))
+    return(data.frame(fit = plogis(eta), lower = NA, upper = NA))
+  }
+
+  # Build model frame with available vars
+  mf <- model.frame(delete.response(terms(model)), data = newdata[, avail_vars, drop = FALSE])
+
+  # Build X matrix
+  X <- model.matrix(delete.response(terms(model)), data = mf)
+
+  # Align X columns, beta, and V to shared names
+  keep <- intersect(names(beta), colnames(X))
+  if (!is.null(rownames(V))) {
+    keep <- intersect(keep, rownames(V))
+  }
+
+  if (length(keep) == 0) {
+    message("[safe_predict] No matching coefficients after alignment. Returning NULL.")
+    return(NULL)
+  }
+
+  beta <- beta[keep]
+  X <- X[, keep, drop = FALSE]
+
+  # Subset V accordingly
+  if (!is.null(V)) {
+    if (!is.null(rownames(V))) {
+      V <- V[keep, keep, drop = FALSE]
+    } else {
+      # Assume same order as coef(model)
+      idx <- match(keep, names(coef(model)))
+      V <- V[idx, idx, drop = FALSE]
+    }
+  }
+
+  eta <- as.numeric(X %*% beta)
+
+  if (is.null(V)) {
+    # Point estimates only
+    return(data.frame(fit = plogis(eta), lower = NA, upper = NA))
+  }
+
+  se_eta <- sqrt(rowSums((X %*% V) * X))
+  data.frame(
+    fit   = plogis(eta),
+    lower = plogis(eta - 1.96 * se_eta),
+    upper = plogis(eta + 1.96 * se_eta)
+  )
+}
+
 build_model_table <- function(model_list, coef_labels = NULL) {
   all_coefs <- do.call(rbind, Filter(Negate(is.null),
     Map(extract_coefs, model_list, names(model_list))))
@@ -94,35 +176,7 @@ build_model_table <- function(model_list, coef_labels = NULL) {
   knitr::kable(wide, row.names = FALSE)
 }
 
-# Safe prediction that bypasses predict.glm -> summary crash
-safe_predict <- function(model, newdata) {
-  beta <- coef(model)
-  V <- safe_vcov(model)
-  mf <- model.frame(delete.response(terms(model)), data = newdata)
-  X <- model.matrix(delete.response(terms(model)), data = mf)
-  # Align X columns, beta, and V to their shared names
-  keep <- intersect(names(beta), colnames(X))
-  if (!is.null(rownames(V))) {
-    keep <- intersect(keep, rownames(V))
-  }
-  beta <- beta[keep]
-  X <- X[, keep, drop = FALSE]
-  # Subset V by position if it lacks names, otherwise by name
-  if (!is.null(rownames(V))) {
-    V <- V[keep, keep, drop = FALSE]
-  } else {
-    # V has no names: assume same order as original coef(model)
-    idx <- match(keep, names(coef(model)))
-    V <- V[idx, idx, drop = FALSE]
-  }
-  eta <- as.numeric(X %*% beta)
-  se_eta <- sqrt(rowSums((X %*% V) * X))
-  data.frame(
-    fit = plogis(eta),
-    lower = plogis(eta - 1.96 * se_eta),
-    upper = plogis(eta + 1.96 * se_eta)
-  )
-}
+
 ```
 
 This chapter presents results for Tier 2 hypotheses, which examine how the relative dependence on ideological legitimation---measured as a ratio of ideological to total legitimation score (`legit_ratio`)---shapes both conflict initiation and target selection. Models include standard logistic regressions and two-part hurdle models. All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
@@ -231,8 +285,7 @@ pred_h6 <- data.frame(
     v2exl_legitlead_a = mean(conflict_data$v2exl_legitlead_a, na.rm = TRUE),
     cinc_a = mean(conflict_data$cinc_a, na.rm = TRUE),
     sidea_winning_coalition_size = mean(conflict_data$sidea_winning_coalition_size, na.rm = TRUE),
-    cold_war = 0,
-    t = 0
+    t_scaled = 0
   )
 
 pred_h6 <- pred_h6 %>%

@@ -53,13 +53,12 @@ safe_vif <- function(model, label = "", type = "predictor") {
         return(vif_res)
 }
 
-#' Safe GLM wrapper with Firth bias reduction (brglm2), checks for separation/rare events,
-#' graceful failure, and fallback to ordinary glm
+#' Safe GLM wrapper with Firth bias reduction, robust convergence, and graceful failure
 #'
 #' @param formula Formula for the model
 #' @param data Data frame
 #' @param family Family object (default: binomial("logit"))
-#' @param min_obs Minimum number of complete observations required (default 10 for rare events)
+#' @param min_obs Minimum number of complete observations required
 #' @param ... Additional arguments passed to glm()
 #'
 #' @return Fitted model object (brglm or glm) or NULL if it fails/skips
@@ -84,24 +83,45 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"),
                 return(NULL)
         }
         
-        # 3. Try Firth bias-reduced logistic regression first (handles separation best)
+        # 3. Optional: Get good starting values from ordinary glm (cheap and often helps a lot)
+        start_vals <- NULL
+        tryCatch({
+                start_fit <- glm(formula, family = family, data = data, maxit = 25)
+                if (!any(is.na(coef(start_fit)))) {
+                        start_vals <- coef(start_fit)
+                }
+        }, error = function(e) NULL, warning = function(w) NULL)
+        
+        # 4. Try Firth bias-reduced logistic regression (most stable settings)
         fit <- tryCatch(
-                glm(formula, family = family, data = data,
+                glm(formula,
+                    family = family,
+                    data = data,
                     method = brglm2::brglmFit,
+                    start = start_vals,                  # Good starting values
                     control = brglm2::brglm_control(
-                            maxit = 2000,            # increase iterations
+                            maxit = 3000,                      # Higher than 2000
                             epsilon = 1e-10,
-                            slowit = 0.1,            # slow acceleration if oscillating
+                            slowit = 0.05,                     # Slower acceleration for stability
                             response_adjustment = TRUE,
-                            type = "AS_mean"         # alternative mean bias reduction (often more stable)
-                    )),
-                warning = function(w) { message("[safe_glm] brglm warning: ", w$message); NULL },
-                error = function(e) { message("[safe_glm] brglm error: ", e$message); NULL }
+                            type = "AS_mixed"                  # Most robust for rare events + separation
+                    ),
+                    ...),
+                warning = function(w) {
+                        message("[safe_glm] brglmFit warning: ", w$message)
+                        NULL  # Continue to fallback
+                },
+                error = function(e) {
+                        message("[safe_glm] brglmFit failed: ", e$message, ". Trying ordinary glm...")
+                        NULL
+                }
         )
-        # 4. Fallback to standard glm if Firth didn't work
+        
+        # 5. Fallback to standard glm if Firth didn't work
         if (is.null(fit)) {
                 fit <- tryCatch(
-                        glm(formula, family = family, data = data, ...),
+                        glm(formula, family = family, data = data,
+                            start = start_vals, ...),
                         error = function(e) {
                                 message("[safe_glm] Ordinary glm also failed: ", e$message, ". Model skipped.")
                                 NULL
@@ -109,7 +129,7 @@ safe_glm <- function(formula, data, family = binomial(link = "logit"),
                 )
         }
         
-        # 5. Final check: warn if converged=FALSE (common with strong separation)
+        # 6. Final convergence check
         if (!is.null(fit) && !is.null(fit$converged) && !fit$converged) {
                 message("[safe_glm] Warning: Model did not fully converge. Coefficients may be unstable/large.")
         }
