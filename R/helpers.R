@@ -65,73 +65,83 @@ safe_vif <- function(model, label = "", type = "predictor") {
 safe_glm <- function(formula, data, family = binomial(link = "logit"),
                      min_obs = 10, ...) {
         
-        # 1. Check if all variables in formula exist in data
+        # 1. Check required variables exist
         vars <- all.vars(formula)
         missing_vars <- vars[!vars %in% names(data)]
         if (length(missing_vars) > 0) {
-                message(sprintf("[safe_glm] Missing variable(s) in data: %s. Skipping model.",
-                                paste(missing_vars, collapse = ", ")))
+                message(sprintf("[safe_glm] Missing variable(s): %s. Skipping.", paste(missing_vars, collapse = ", ")))
                 return(NULL)
         }
         
         # 2. Check sufficient complete cases
-        complete_rows <- complete.cases(data[, vars, drop = FALSE])
-        n_complete <- sum(complete_rows)
+        complete <- complete.cases(data[, vars, drop = FALSE])
+        n_complete <- sum(complete)
         if (n_complete < min_obs) {
-                message(sprintf("[safe_glm] Too few complete cases (%d < %d required). Skipping model.",
-                                n_complete, min_obs))
+                message(sprintf("[safe_glm] Too few complete cases (%d < %d). Skipping.", n_complete, min_obs))
                 return(NULL)
         }
         
-        # 3. Optional: Get good starting values from ordinary glm (cheap and often helps a lot)
+        # 3. Try to get good starting values (non-blocking)
         start_vals <- NULL
         tryCatch({
-                start_fit <- glm(formula, family = family, data = data, maxit = 25)
-                if (!any(is.na(coef(start_fit)))) {
-                        start_vals <- coef(start_fit)
+                simple_fit <- glm(formula, family = family, data = data, maxit = 50, quiet = TRUE)
+                if (all(is.finite(coef(simple_fit)))) {
+                        start_vals <- coef(simple_fit)
+                        message("[safe_glm] Using starting values from initial glm.")
                 }
         }, error = function(e) NULL, warning = function(w) NULL)
         
-        # 4. Try Firth bias-reduced logistic regression (most stable settings)
-        fit <- tryCatch(
-                glm(formula,
-                    family = family,
-                    data = data,
-                    method = brglm2::brglmFit,
-                    start = start_vals,                  # Good starting values
-                    control = brglm2::brglm_control(
-                            maxit = 3000,                      # Higher than 2000
-                            epsilon = 1e-10,
-                            slowit = 0.05,                     # Slower acceleration for stability
-                            response_adjustment = TRUE,
-                            type = "AS_mixed"                  # Most robust for rare events + separation
-                    ),
-                    ...),
-                warning = function(w) {
-                        message("[safe_glm] brglmFit warning: ", w$message)
-                        NULL  # Continue to fallback
-                },
-                error = function(e) {
-                        message("[safe_glm] brglmFit failed: ", e$message, ". Trying ordinary glm...")
+        # 4. Main Firth fit (only pass start if valid)
+        fit <- tryCatch({
+                glm_args <- list(
+                        formula = formula,
+                        family = family,
+                        data = data,
+                        method = brglm2::brglmFit,
+                        control = brglm2::brglm_control(
+                                maxit = 1000,
+                                epsilon = 1e-10,
+                                slowit = 0.01,
+                                response_adjustment = TRUE,
+                                type = "AS_mean"          # your preferred type
+                        ),
+                        ...
+                )
+                
+                if (!is.null(start_vals)) {
+                        glm_args$start <- start_vals
+                }
+                
+                do.call(glm, glm_args)
+        }, warning = function(w) {
+                message("[safe_glm] brglmFit warning: ", w$message)
+                NULL
+        }, error = function(e) {
+                message("[safe_glm] brglmFit error: ", e$message)
+                if (grepl("missing|default", e$message) && !is.null(start_vals)) {
+                        message("[safe_glm] Retrying without starting values...")
+                        glm_args$start <- NULL
+                        do.call(glm, glm_args)
+                } else {
                         NULL
                 }
-        )
+        })
         
-        # 5. Fallback to standard glm if Firth didn't work
+        # 5. Fallback to ordinary glm if Firth failed
         if (is.null(fit)) {
+                message("[safe_glm] brglmFit failed. Trying ordinary glm...")
                 fit <- tryCatch(
-                        glm(formula, family = family, data = data,
-                            start = start_vals, ...),
+                        glm(formula, family = family, data = data, start = start_vals, ...),
                         error = function(e) {
-                                message("[safe_glm] Ordinary glm also failed: ", e$message, ". Model skipped.")
+                                message("[safe_glm] Ordinary glm also failed: ", e$message)
                                 NULL
                         }
                 )
         }
         
-        # 6. Final convergence check
-        if (!is.null(fit) && !is.null(fit$converged) && !fit$converged) {
-                message("[safe_glm] Warning: Model did not fully converge. Coefficients may be unstable/large.")
+        # 6. Convergence check
+        if (!is.null(fit) && !fit$converged) {
+                message("[safe_glm] Warning: Model did not fully converge.")
         }
         
         return(fit)

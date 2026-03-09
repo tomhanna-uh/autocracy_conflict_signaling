@@ -139,6 +139,22 @@ All data preparation is handled by `R/02_data_prep.R`. Key transformations inclu
 - **`ideology_gap`**: absolute difference in `v2exl_legitideol` between Side A and Side B, used as a dyadic IV in H3/H4 Model 6 specifications.
 - **Output**: cleaned datasets are saved as `.rds` objects in `ready_data/` (Git-ignored) to preserve factor levels and R attributes.
 
+
+### H8 — Moderation by Dynamic Leadership changes
+
+H8 tests whether dynamic personal leadership qualities moderate the effect of revisionist ideology on conflict behavior. Models estimate the interaction between `legit_ratio` and `sidea_dynamic_leader` (centered to reduce collinearity) on MID initiation and democracy targeting.
+
+Due to severe quasi-complete separation and convergence issues in the full specification (driven by rare events, interactions, and the temporal polynomial), the models were simplified:
+
+- Temporal dependence terms (`t_scaled`, `t2_scaled`, `t3_scaled`) were removed.
+- Analysis restricted to Cold War years (1960–1989) to eliminate the need for a `cold_war` dummy.
+- Logged CINC variables (`log_cinc_a`, `log_cinc_b`) were dropped.
+- Only the core interaction and winning coalition size were retained.
+
+Both logit (cloglog link for rare onset) and linear probability model (LPM) specifications are reported; LPM aids interpretation of interaction marginal effects.
+
+Future extensions (planned): separate runs for the post-Cold War (1990–2000) and post-2001 War on Terror eras to test stability across geopolitical contexts.
+
 ```{r}
 #| label: descriptive-stats
 #| tbl-cap: "Descriptive statistics for key analysis variables"
