@@ -90,7 +90,6 @@ build_model_table <- function(model_list, coef_labels = NULL) {
 This chapter presents results for Tier 1 hypotheses, which use standard logistic regression to estimate the relationship between leadership ideology, support group composition, and conflict behavior (initiation and target selection). All models are estimated on the full dyadic dataset (`dyad_ready`) with Side A restricted to autocracies ($v2x\_libdem_a < 0.5$).
 
 ## H1: Leadership Ideology and Conflict Initiation
-
 **H1** predicts that autocratic states with higher revisionist domestic leadership ideology will be more likely to initiate MIDs. The dependent variable is `mid_initiated` (hihosta $\geq$ 2).
 
 ```{r}
@@ -100,16 +99,17 @@ build_model_table(
   list(
     "(1) Baseline" = h1_models$h1_baseline,
     "(2) +Controls" = h1_models$h1_controls,
-    "(3) Full" = h1_models$h1_full
+    "(3) Simplified Full" = h1_models$h1_full
   )
 )
 ```
+
+Note on simplified full model: The original full specification (including temporal dependence terms and cold_war) exhibited severe quasi-complete separation and non-convergence due to rare events and high-dimensional predictors. The reported model excludes these terms for reliable estimation while preserving the core ideology and control effects.
 
 ### Ideology Sub-type Models
 
 Sub-type models use simplified specifications (baseline + controls only, without temporal cubic spline) to avoid non-convergence caused by limited variance in individual ideology sub-type variables.
 
-```{r}
 #| label: tbl-h1-subtypes
 #| tbl-cap: "H1: Ideology Sub-types and Conflict Initiation (Simplified Models)"
 build_model_table(
@@ -122,11 +122,10 @@ build_model_table(
     "Nation. (+ctrl)" = h1_models$h1_nationalist
   )
 )
-```
 
 ## H2: Leadership Ideology and Democracy Targeting
 
-**H2** predicts that among conflict initiators, states with higher revisionist ideology preferentially target democracies. The sample is restricted to `mid_initiated == 1` rows.
+**H2** predicts that among conflict initiators, states with higher revisionist ideology preferentially target democracies. The sample is restricted to **mid_initiated == 1** rows.
 
 ```{r}
 #| label: tbl-h2
@@ -135,7 +134,7 @@ build_model_table(
   list(
     "(1) Baseline" = h2_models$h2_baseline,
     "(2) +Controls" = h2_models$h2_controls,
-    "(3) Full" = h2_models$h2_full
+    "(3) Simplified Full" = h2_models$h2_full
   )
 )
 ```
@@ -159,6 +158,8 @@ build_model_table(
 )
 ```
 
+
+
 ## H4: Support Group Ideology and Democracy Targeting
 
 **H4** tests whether support group ideology shapes target selection among conflict initiators.
@@ -177,6 +178,8 @@ build_model_table(
   )
 )
 ```
+
+Note on simplified full model: Temporal dependence terms and cold_war were excluded from full models to ensure convergence and avoid quasi-complete separation in rare-event data.
 
 ## Summary
 

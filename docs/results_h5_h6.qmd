@@ -3,7 +3,13 @@
 ```{r}
 #| label: setup
 #| include: false
+
+library(here)
+library(tidyverse)
+here::i_am("docs/results_h5_h6.qmd")  # ← Add this line
+
 source(here::here("R", "00_packages.R"))
+
 
 # Load pre-estimated models
 h5_logit_models <- readRDS(here::here("results", "h5_logit_models.rds"))
@@ -211,44 +217,36 @@ build_model_table(
 
 ```{r}
 #| label: fig-h5-pred
-#| fig-cap: "H5: Predicted probability of MID initiation by legitimation ratio (full logit model)"
-pred_h5 <- data.frame(
-  legit_ratio = seq(
-    quantile(dyad_ready$legit_ratio, 0.05, na.rm = TRUE),
-    quantile(dyad_ready$legit_ratio, 0.95, na.rm = TRUE),
-    length.out = 100
-  )
-) %>%
-  mutate(
-    v2exl_legitperf_a = mean(dyad_ready$v2exl_legitperf_a, na.rm = TRUE),
-    v2exl_legitlead_a = mean(dyad_ready$v2exl_legitlead_a, na.rm = TRUE),
-    targets_democracy = 0,
-    cinc_a = mean(dyad_ready$cinc_a, na.rm = TRUE),
-    sidea_winning_coalition_size = mean(dyad_ready$sidea_winning_coalition_size, na.rm = TRUE),
-    cold_war = 0,
-    t_scaled = 0, t2_scaled = 0, t3_scaled = 0
-  )
-
-pred_h5 <- pred_h5 %>%
-  bind_cols(safe_predict(h5_logit_models$h5_full, pred_h5))
-
-ggplot(pred_h5, aes(x = legit_ratio, y = fit)) +
-  geom_line(color = "#0072B2", linewidth = 1.2) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#0072B2") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
-  labs(
-    x = "Ideological Legitimation Ratio (V-Dem)",
-    y = "Predicted Probability of MID Initiation",
-    subtitle = "Other variables held at means; Cold War = 0; Targets Democracy = 0"
-  )
+# #| fig-cap: "Predicted Probability of MID Initiation by Legitimation Ratio (Filtered Range)"
+# 
+# # Use the correct model name from your load (h5_logit_models, not h5_models)
+# # Minimal prediction data (synthetic range to avoid separation artifacts)
+# pred_data <- expand.grid(
+#   legit_ratio = seq(-2, 3, length.out = 100),  # reasonable range from your previous plot
+#   v2exl_legitperf_a = 0,
+#   v2exl_legitlead_a = 0,
+#   cinc_a = 0,
+#   sidea_winning_coalition_size = 0
+#   # No t_scaled needed if dropped from model
+# )
+# 
+# # Generate predictions using the loaded model name
+# preds <- predictions(h5_logit_models$h5_full, newdata = pred_data)
+# 
+# ggplot(preds, aes(x = legit_ratio, y = estimate)) +
+#   geom_line(color = "blue", linewidth = 1.2) +
+#   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "blue") +
+#   scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+#   labs(
+#     x = "Ideological Legitimation Ratio (V-Dem)",
+#     y = "Predicted Probability of MID Initiation",
+#     title = "Predicted Probability of MID Initiation by Legitimation Ratio",
+#     subtitle = "Other variables held at zero/means; synthetic range to avoid boundary effects"
+#   ) +
+#   theme_minimal() +
+#   ylim(0, 0.1)  # Zoom to realistic rare-event probabilities
 ```
 
-if (is.null(h5_logit_models$h5_full)) {
-  cat("H5 full model skipped — no predictions available.")
-} else {
-  pred_h5 <- pred_h5 %>% bind_cols(safe_predict(h5_logit_models$h5_full, pred_h5))
-  # Then ggplot
-}
 
 ## H6: Legitimation Mix and Democracy Targeting
 

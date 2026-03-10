@@ -5,15 +5,11 @@
 #| include: false
 
 library(here)
-here::i_am("docs/appendix.qmd")  # Ensure correct project root
-
 source(here::here("R", "00_packages.R"))
 
 ```
 
 ```{r}
-
-
 # Load cached dyad_ready for descriptive statistics
 dyad_ready_path <- here::here("results", "dyad_ready.rds")
 if (file.exists(dyad_ready_path)) {
@@ -28,11 +24,9 @@ if (file.exists(monadic_ready_path)) {
 } else {
   message("monadic_ready.rds not found. Run 02_data_prep.R first.")
 }
-
 ```
 
 ```{r}
-
 # Load all model objects
 h1_models   <- readRDS(here::here("results", "h1_logit_models.rds"))
 h2_models   <- readRDS(here::here("results", "h2_logit_models.rds"))
@@ -42,20 +36,25 @@ h5_logit_models <- readRDS(here::here("results", "h5_logit_models.rds"))
 h6_logit_models <- readRDS(here::here("results", "h6_logit_models.rds"))
 h8_init     <- readRDS(here::here("results", "h8_init_models.rds"))
 h8_target   <- readRDS(here::here("results", "h8_target_models.rds"))
-# Load H8 robustness models (optional - skip if file missing)
-h8_robust <- tryCatch(
-  readRDS(here::here("results", "h8_robust_models.rds")),
-  error = function(e) {
-    message("h8_robust_models.rds not found - skipping H8 robustness in appendix")
-    NULL
-  }
-)
-h9_survival <- readRDS(here::here("results", "h9_survival.rds"))
 
 ```
 
+```{r}
+# # Load H8 robustness models (optional - skip if file missing)
+# h8_robust <- tryCatch(
+#   readRDS(here::here("results", "h8_robust_models.rds")),
+#   error = function(e) {
+#     message("h8_robust_models.rds not found - skipping robustness section in appendix")
+#     NULL
+#   }
+# )
+
+```
 
 ```{r}
+
+h9_survival <- readRDS(here::here("results", "h9_survival.rds"))
+
 
 # Universal coefficient extractor for any model type
 # Avoids summary() which crashes on brglmFit and incomplete lm objects
@@ -107,11 +106,6 @@ extract_coefs <- function(model, model_name) {
     NULL
   })
 }
-
-```
-
-
-```{r}
 
 # Helper to build a kable comparison table from a named list of models
 build_model_table <- function(model_list, coef_labels = NULL) {
@@ -280,17 +274,13 @@ build_model_table(
 ```{r}
 #| label: tbl-h8-robust
 #| tbl-cap: "H8 Robustness: Alternative Interaction Models (LPM)"
-if (!is.null(h8_robust)) {
-  build_model_table(
-    list(
-      "W. Coalition" = h8_robust$h8_wcoal_int,
-      "Mil. Support" = h8_robust$h8_milsupp_int,
-      "Cold War" = h8_robust$h8_coldwar_int
-    )
+build_model_table(
+  list(
+    "W. Coalition" = h8_robust$h8_wcoal_int,
+    "Mil. Support" = h8_robust$h8_milsupp_int,
+    "Cold War" = h8_robust$h8_coldwar_int
   )
-} else {
-  cat("H8 robustness models not available (file missing or skipped).")
-}
+)
 ```
 
 ## A.5 H9 Robustness: Alternative Survival Specifications
@@ -334,23 +324,3 @@ The table below details the exact coding decisions for binary and continuous var
 | `t`, `t2`, `t3` | Peace years since last MID; polynomial splines for temporal dependence | Derived |
 
 : Variable Coding Details {#tbl-variable-coding}
-
-## A.7 Robustness: Full Models as Linear Probability Models (LPM) with Clustered SEs
-
-To address potential functional form concerns and incidental parameters bias, we re-estimate the full models as linear probability models with clustered standard errors (on dyad).
-
-```{r}
-#| label: tbl-lpm-appendix
-#| tbl-cap: "Appendix: Linear Probability Models – Full Specifications (Clustered SEs)"
-lpm_models <- readRDS(here::here("results", "lpm_appendix_models.rds"))
-
-build_model_table(
-  list(
-    "H1 Full (LPM)" = lpm_models$h1_full,
-    "H2 Full (LPM)" = lpm_models$h2_full,
-    "H3 Full (LPM)" = lpm_models$h3_full,
-    "H4 Full (LPM)" = lpm_models$h4_full,
-    "H5 Full (LPM)" = lpm_models$h5_full,
-    "H6 Full (LPM)" = lpm_models$h6_full
-  )
-)

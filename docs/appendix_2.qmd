@@ -1,0 +1,21 @@
+## Appendix: Linear Probability Model Robustness Checks
+
+To address potential concerns about functional form and incidental parameters bias in high-dimensional settings, we re-estimate the full models as linear probability models (LPM) with clustered standard errors (on dyad). LPM provides direct estimates of average partial effects (Wooldridge 2010) and avoids convergence issues in rare-event logit with temporal terms. Significance tests are nearly identical to logit in practice (Hellevik 2009).
+
+```{r}
+#| label: tbl-lpm-appendix
+#| tbl-cap: "Appendix: Linear Probability Models – Full Specifications (Clustered SEs)"
+# Load LPM models
+lpm_models <- readRDS(here::here("results", "lpm_appendix_models.rds"))
+
+build_model_table(
+        list(
+                "H1 Full (LPM)" = lpm_models$h1_full,
+                "H2 Full (LPM)" = lpm_models$h2_full,
+                "H3 Full (LPM)" = lpm_models$h3_full,
+                "H4 Full (LPM)" = lpm_models$h4_full,
+                "H5 Full (LPM)" = lpm_models$h5_full,
+                "H6 Full (LPM)" = lpm_models$h6_full
+        )
+)
+```
