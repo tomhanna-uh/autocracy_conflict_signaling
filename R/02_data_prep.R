@@ -67,6 +67,12 @@ if (exists("dyad_ready") && exists("monadic_ready")) {
                         ungroup()
         }
 
+        # Load the raw dyadic data (from 01_load_data.R)
+        dyad_df <- load_dyad_data()  # ← This line loads the raw data frame
+        
+        # Prepare it
+        dyad_ready <- prep_dyad(dyad_df)
+        
 dyad_ready <- prep_dyad(dyad_df)
 
 # 3. Monadic Preparation (derived from dyadic master) ----
@@ -156,6 +162,8 @@ prep_monadic <- function(dyad_df) {
                 ) %>%
                 ungroup()
 }
+
+
 
 monadic_ready <- prep_monadic(dyad_df)
 
