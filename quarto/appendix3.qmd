@@ -1,0 +1,60 @@
+---
+title: "Appendix 3: All Plots - Paper 1 (Ideological Commitment Signaling and Conflict)"
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+    self-contained: true
+  pdf:
+    documentclass: report
+    classoption: [a4paper, 12pt]
+    toc: true
+    number-sections: true
+    fig-cap-location: top
+    tbl-cap-location: top
+---
+
+```{r}
+#| label: setup-appendix3
+#| include: false
+
+library(here)
+
+# Force the correct project root no matter where the render starts from
+here::i_am("quarto/appendix3.qmd")
+setwd(here::here())
+
+# Copy plots so Quarto can reliably find them
+dir.create(here("quarto/plots"), showWarnings = FALSE, recursive = TRUE)
+plot_files <- list.files(here("results/plots"), pattern = "\\.png$", full.names = TRUE)
+for (f in plot_files) {
+  file.copy(f, here("quarto/plots", basename(f)), overwrite = TRUE)
+}
+
+library(knitr)
+message("Working directory forced to project root: ", getwd())
+```
+
+This appendix contains all plots generated for Paper 2 (Ideological Commitment Signaling). Each plot is saved in the `results/plots/` directory and copied to `quarto/plots/` for rendering. The plots include:
+
+
+```{r}
+#| echo: false
+#| message: false
+
+# 1. Path from 'quarto/' up to root, then to 'results/plots/'
+img_folder <- "../results/plots"
+
+# 2. Grab the PNGs
+img_files <- list.files(img_folder, pattern = "\\.png$", full.names = TRUE)
+
+# 3. Display them
+knitr::include_graphics(img_files)
+```
+
+
+```
+
+
+
