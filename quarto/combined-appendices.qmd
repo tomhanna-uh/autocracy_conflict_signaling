@@ -1,0 +1,120 @@
+---
+title: "Combined Appendices - Paper 1 (Ideological Commitment Signaling via Non-State Armed Groups)"
+subtitle: "Appendix 3: All Plots | Appendix 4: All Regression Tables"
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+    self-contained: true
+  pdf:
+    documentclass: report
+    classoption: [a4paper, 12pt]
+    toc: true
+    number-sections: true
+    fig-cap-location: top
+    tbl-cap-location: top
+---
+
+```{r}
+#| label: setup-combined-appendices
+#| include: false
+
+# =============================================================================
+# combined-appendices.qmd - Single file containing ALL plots (App 3) + ALL tables (App 4) for Paper 1
+# =============================================================================
+library(here)
+# Rule 7: every script/QMD uses here::i_am()
+here::i_am("quarto/combined-appendices.qmd")
+setwd(here::here())
+
+
+
+# Create quarto subfolders and copy all files from results/
+dir.create(here("quarto/plots"),  showWarnings = FALSE, recursive = TRUE)
+dir.create(here("quarto/tables"), showWarnings = FALSE, recursive = TRUE)
+
+# Copy plots
+plot_files <- list.files(here("results/plots"), pattern = "\\.png$", full.names = TRUE)
+for (f in plot_files) {
+  file.copy(f, here("quarto/plots", basename(f)), overwrite = TRUE)
+}
+
+# Copy tables (stargazer .tex, modelsummary .md/.txt, coefficient .csv)
+table_files <- list.files(here("results/tables"), pattern = "\\.(tex|txt|md|html|csv)$", full.names = TRUE)
+for (f in table_files) {
+  file.copy(f, here("quarto/tables", basename(f)), overwrite = TRUE)
+}
+
+library(knitr)
+library(stargazer)
+library(modelsummary)
+
+message("Working directory forced to project root: ", getwd())
+message("Copied ", length(plot_files), " plot files to quarto/plots/")
+message("Copied ", length(table_files), " table files to quarto/tables/")
+```
+
+This single self-contained Quarto document produces **both** Appendix 3 (all plots) and Appendix 4 (all regression tables) for **Paper 1** in one output file.  
+All files follow the project coding rules (Rules 3, 4, 5, 7, 9, 12, 14). Plots use friendly English labels and ordered X-axes; tables use `stargazer` (preferred) or `modelsummary`.
+
+## Appendix 3: All Plots
+
+```{r}
+#| echo: false
+#| message: false
+#| fig-cap: "All plots generated for Paper 1 (Ideological Commitment Signaling) - ordered by filename"
+
+img_folder <- "../results/plots"
+img_files <- list.files(img_folder, pattern = "\\.png$", full.names = TRUE)
+knitr::include_graphics(img_files)
+```
+
+## Appendix 4: All Regression Tables
+
+### 4.1 Stargazer / LaTeX Tables (Journal-Ready)
+
+```{r}
+#| echo: false
+#| results: asis
+
+tex_files <- list.files(here("quarto/tables"), pattern = "\\.tex$", full.names = TRUE)
+for (tf in sort(tex_files)) {
+  cat("\n\\newpage\n")
+  cat(readLines(tf), sep = "\n")
+  cat("\n\n")
+}
+```
+
+### 4.2 Modelsummary / Markdown Tables (HTML-Friendly)
+
+```{r}
+#| echo: false
+#| results: asis
+
+md_files <- list.files(here("quarto/tables"), pattern = "\\.md$", full.names = TRUE)
+for (mf in sort(md_files)) {
+  cat("\n\n")
+  cat(readLines(mf), sep = "\n")
+  cat("\n\n")
+}
+```
+
+### 4.3 Coefficient CSV Extracts (Quick Reference)
+
+```{r}
+#| echo: false
+#| results: asis
+
+csv_files <- list.files(here("quarto/tables"), pattern = "\\.csv$", full.names = TRUE)
+if (length(csv_files) > 0) {
+  for (cf in sort(csv_files)) {
+    cat("\n\n**", basename(cf), "**\n\n")
+    tab <- read.csv(cf)
+    knitr::kable(tab, format = "markdown", digits = 3, caption = basename(cf))
+    cat("\n\n")
+  }
+}
+```
+
+```
